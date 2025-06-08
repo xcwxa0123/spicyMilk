@@ -62,7 +62,7 @@ export const TimeLineItem: React.FC<Props> = ({ data }) => {
         <Animated.View
             style={[styles.container, { opacity, transform: [{ translateY }] }]}
         >
-            <View style={styles.imageContainer}>
+            {/* <View style={styles.imageContainer}>
                 <Image
                     style={{ height: imageSize / 2, width: imageSize }}
                     // source={item.imagePath}
@@ -95,7 +95,7 @@ export const TimeLineItem: React.FC<Props> = ({ data }) => {
                     挂个点赞的
                     <Text style={styles.review}>测评啥的 Reviews</Text>
                 </View>
-            </View>
+            </View> */}
         </Animated.View>
     );
 };

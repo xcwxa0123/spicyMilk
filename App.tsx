@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { getDynamicStack } from '@tools/naviHook'
-import { DataBaseMain, MainScreen, TestScreen, DataBaseOp } from '@assets/route'
+import { DataBaseMain, MainScreen, TestScreen, DataBaseOp, BossActLine, ActionLine } from '@assets/route'
 import { RealmProvider, Realm } from '@realm/react'
 import { Main, DungeonCategory, TimeLineSum } from '@tools/schemas/zeroExport'
 import 'react-native-get-random-values';
@@ -19,6 +19,8 @@ function RootStack() {
             <Stack.Screen name='DataBaseMain' component={ DataBaseMain }></Stack.Screen>
             <Stack.Screen name='DataBaseOp' component={ DataBaseOp }></Stack.Screen>
             <Stack.Screen name='TestScreen' component={ TestScreen }></Stack.Screen>
+            <Stack.Screen name='BossActLine' component={ BossActLine }></Stack.Screen>
+            <Stack.Screen name='ActionLine' component={ ActionLine }></Stack.Screen>
         </Stack.Navigator>
     )
 }
