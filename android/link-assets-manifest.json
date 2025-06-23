@@ -1,0 +1,13 @@
+{
+  "migIndex": 1,
+  "data": [
+    {
+      "path": "src/assets/fonts/Source Han Serif SC Heavy (TrueType).ttf",
+      "sha1": "1c5157af1e2fa509e54d065d5f8391f906ba3c4d"
+    },
+    {
+      "path": "src/assets/fonts/SourceHanSerifCN-SemiBold-7.ttf",
+      "sha1": "0f4d58ec0ca724a683d5e3b94b732bfb69c18c70"
+    }
+  ]
+}

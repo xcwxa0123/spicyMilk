@@ -6,6 +6,8 @@ export type RouteList = {
     ActionLine: undefined;
     BossActLine: { dungeonName: string };
     TestScreen: undefined;
+    // 从这开始是排班的
+    SAMainScreen: undefined;
 }
 
 export const ROUTE = {
@@ -15,6 +17,8 @@ export const ROUTE = {
     ACTIONLINE: 'ActionLine',
     BOSSACTLINE: 'BossActLine',
     TESTSCREEN: 'TestScreen',
+    // 从这开始是排班的
+    SAMAINSCREEN: 'SAMainScreen'
 } as const;
 
 export { MainScreen } from '@pages/MainScreen'
@@ -23,3 +27,5 @@ export { DataBaseOp } from '@pages/DataBase/DataBaseOp'
 export { ActionLine } from '@pages/TimeLineOp/ActionLine'
 export { BossActLine } from '@pages/TimeLineOp/BossActLine'
 export { TestScreen } from '@pages/TestScreen'
+// 从这开始是排班的
+export { SAMainScreen } from '@pages/ShiftArrange/SAMainScreen'
