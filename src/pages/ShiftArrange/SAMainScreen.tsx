@@ -2,7 +2,7 @@ import { ImageBackground, Image, Text, View, StyleSheet, Pressable, ScrollView }
 import { useEffect } from 'react';
 import { getNavigation } from '@tools/naviHook'
 import { Button } from '@react-navigation/elements';
-import { ROUTE } from '@assets/route'
+import { ROUTE } from '@tools/route'
 import { initTable } from '@tools/initTable'
 import { useLayoutEffect } from 'react';
 
@@ -65,7 +65,11 @@ export function SAMainScreen() {
                 <View style={ styles.samList }>
                     {
                         arrangeItemList.map((item, index) => (
-                            <Pressable style={ ({ pressed }) => [styles.samItem, { backgroundColor: item.backgroundColor }, pressed && styles.samItemActive] } key={ index }>
+                            <Pressable
+                                style={ ({ pressed }) => [styles.samItem, { backgroundColor: item.backgroundColor }, pressed && styles.samItemActive] } 
+                                key={ index } 
+                                onPress={() => navigation.navigate(ROUTE.ARRANGESCREEN, { arrangeType: item.type })}
+                            >
                                 <Text style={ styles.samItemText }>| { index + 1 } { item.itemName }</Text>
                                 <Image source={getIconImage(index)} resizeMode="contain" style={ styles.samItemIcon }></Image>
                             </Pressable>

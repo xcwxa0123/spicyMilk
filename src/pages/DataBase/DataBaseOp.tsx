@@ -1,10 +1,10 @@
 import { Text, View, FlatList, StyleSheet, StatusBar, Pressable  } from 'react-native';
 import { dataDeal } from '@assets/The Epic of Alexander'
 import { Button } from '@react-navigation/elements';
-import { ROUTE } from '@assets/route'
+import { ROUTE } from '@tools/route'
 import { getNavigation, RouteProps } from '@tools/naviHook'
 import { useRealm } from '@realm/react';
-import { Main, DungeonCategory, TimeLineSum, TimeLine, createTimeLine } from '@tools/schemas/zeroExport'
+import { Main, DungeonCategory, TimeLineSum, TimeLine, createTimeLine } from '@tools/zeroExport'
 import SQLite from 'react-native-sqlite-storage';
 
 interface ItemProps { data: { [key: string]: any } }

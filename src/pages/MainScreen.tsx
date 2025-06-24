@@ -2,7 +2,7 @@ import { Text, View, StyleSheet } from 'react-native';
 import { useEffect } from 'react';
 import { getNavigation } from '@tools/naviHook'
 import { Button } from '@react-navigation/elements';
-import { ROUTE } from '@assets/route'
+import { ROUTE } from '@tools/route'
 import { initTable } from '@tools/initTable'
 
 export function MainScreen() {

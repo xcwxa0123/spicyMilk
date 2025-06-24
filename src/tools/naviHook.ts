@@ -2,7 +2,7 @@ import { useNavigation, createStaticNavigation } from '@react-navigation/native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 
-import { RouteList } from '@assets/route';
+import { RouteList } from '@tools/route';
 
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 

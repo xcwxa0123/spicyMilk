@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Realm, RealmProvider, useRealm, useQuery } from '@realm/react'
 // import { AsyncStorage } from 'react-native'; // 用于存储标志位
-import { Main, DungeonCategory, TimeLineSum, TimeLine } from '@tools/schemas/zeroExport'
+import { Main, DungeonCategory, TimeLineSum, TimeLine } from '@tools/zeroExport'
 
 const MainContainer = [
 	Main.generate('时间轴', '时间轴排轴工具', 0),

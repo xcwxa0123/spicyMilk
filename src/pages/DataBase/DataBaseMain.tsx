@@ -1,7 +1,7 @@
 import { Text, View, SectionList, StyleSheet, StatusBar } from 'react-native';
 import { Button } from '@react-navigation/elements';
 import { useState } from 'react';
-import { ROUTE } from '@assets/route'
+import { ROUTE } from '@tools/route'
 import { getNavigation } from '@tools/naviHook'
 import { useRealm } from '@realm/react';
 

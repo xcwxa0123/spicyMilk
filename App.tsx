@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { getDynamicStack } from '@tools/naviHook'
-import { DataBaseMain, MainScreen, TestScreen, DataBaseOp, BossActLine, ActionLine, SAMainScreen } from '@assets/route'
+import { DataBaseMain, MainScreen, TestScreen, DataBaseOp, BossActLine, ActionLine, SAMainScreen, ArrangeScreen } from '@tools/route'
 import { RealmProvider, Realm } from '@realm/react'
-// import { Main, DungeonCategory, TimeLineSum } from '@tools/schemas/zeroExport'
-import { ArrangeList, ArrangePeople, ArrangePosition } from '@tools/schemas/zeroExport'
+// import { Main, DungeonCategory, TimeLineSum } from '@tools/zeroExport'
+import { ArrangeList, ArrangePeople, ArrangePosition } from '@tools/zeroExport'
 import 'react-native-get-random-values';
 
 const Stack = getDynamicStack()
@@ -24,6 +24,7 @@ function RootStack() {
             <Stack.Screen name='BossActLine' component={ BossActLine }></Stack.Screen>
             <Stack.Screen name='ActionLine' component={ ActionLine }></Stack.Screen> */}
             <Stack.Screen name='SAMainScreen' component={ SAMainScreen }></Stack.Screen>
+            <Stack.Screen name='ArrangeScreen' component={ ArrangeScreen }></Stack.Screen>
         </Stack.Navigator>
     )
 }
