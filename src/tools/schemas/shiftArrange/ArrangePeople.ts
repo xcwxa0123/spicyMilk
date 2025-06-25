@@ -4,11 +4,13 @@ import { Realm } from '@realm/react'
 export class ArrangePeople extends Realm.Object<ArrangePeople> {
     _id!: Realm.BSON.ObjectId; // 主键
     name!: string; // 人员姓名
+    index!: number; // 排序
     
-    static generate(name: string) {
+    static generate(name: string, index: number) {
         return {
             _id: new Realm.BSON.ObjectId(),
-            name
+            name,
+            index
         } as ArrangePeople;
     }
 
@@ -17,7 +19,8 @@ export class ArrangePeople extends Realm.Object<ArrangePeople> {
         primaryKey: '_id',
         properties: {
             _id: 'objectId',
-            name: 'string'
+            name: 'string',
+            index: 'int'
         },
     };
 }

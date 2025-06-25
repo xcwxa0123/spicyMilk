@@ -8,7 +8,8 @@ export type RouteList = {
     TestScreen: undefined;
     // 从这开始是排班的
     SAMainScreen: undefined;
-    ArrangeScreen: { arrangeType: number };
+    ArrangeScreen: { arrangeType: number, title: string };
+    BackStageScreen: undefined;
 }
 
 export const ROUTE = {
@@ -20,7 +21,8 @@ export const ROUTE = {
     TESTSCREEN: 'TestScreen',
     // 从这开始是排班的
     SAMAINSCREEN: 'SAMainScreen',
-    ARRANGESCREEN: 'ArrangeScreen'
+    ARRANGESCREEN: 'ArrangeScreen',
+    BACKSTAGESCREEN: 'BackStageScreen'
 } as const;
 
 export { MainScreen } from '@pages/MainScreen'
@@ -32,3 +34,4 @@ export { TestScreen } from '@pages/TestScreen'
 // 从这开始是排班的
 export { SAMainScreen } from '@pages/ShiftArrange/SAMainScreen'
 export { ArrangeScreen } from '@pages/ShiftArrange/ArrangeScreen'
+export { BackStageScreen } from '@pages/ShiftArrange/BackStageScreen'

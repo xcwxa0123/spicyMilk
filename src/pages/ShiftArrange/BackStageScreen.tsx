@@ -25,39 +25,15 @@ const getIconImage = (index: number | string) => {
     }
     return imgList[index] || require('@assets/m1.png')
 }
+type BackStageScreen = { route: RouteProp<RouteList, 'BackStageScreen'> }
 
-
-// const dataPlusDC = () => {
-//     realm.write(() => {
-//         const data = ArrangePosition.generate()
-//         realm.create('TimeLineSum', data)
-//     })
-
-// }
-
-// let result = realm.objects(route.params.dbName)
-type ASRouteParams = { route: RouteProp<RouteList, 'ArrangeScreen'> }
-
-export function ArrangeScreen({ route }: ASRouteParams) {
+export function BackStageScreen({ route }: BackStageScreen) {
     // initTable()
     const [modalVisible, setModalVisible] = useState(false);
     const [dateModalVisible, setDateModalVisible] = useState(false);
-    const [isEdit, setIsEdit] = useState(false)
     const navigation = getNavigation();
     useLayoutEffect(() => {
         navigation.setOptions({
-            headerRight: () => (
-                <Pressable 
-                    style={ ({ pressed }) => [styles.rbtn, pressed && styles.rbtnActive] }
-                    onPress={() => setIsEdit(!isEdit)}
-                >
-                    {
-                        !isEdit? 
-                        <Image source={ getIconImage('editImage') } style={ styles.editImg }></Image> : 
-                        <Image source={ getIconImage('okImage') } style={ styles.okImg }></Image>
-                    }
-                </Pressable>
-            ),
             title: '',
             headerStyle: {
                 backgroundColor: 'rgba(254, 251, 244, 0.3)',
@@ -65,16 +41,14 @@ export function ArrangeScreen({ route }: ASRouteParams) {
             headerTintColor: '#rgba(0, 0, 0, 1)', // 文字/图标颜色
             headerShadowVisible: false,
         });
-    }, [navigation, isEdit, modalVisible, dateModalVisible]);
+    }, [navigation]);
     
-    let arrangeItemList = realm.objects('ArrangePosition').filtered('positoinType == $0', route.params.arrangeType)
-    let peopleList = realm.objects('ArrangePeople')
-    console.log('康康人员列表捏===========>peopleList', peopleList)
-
-    function openPeopleSelect() {
-        setDateModalVisible(true)
-    }
-
+    let arrangeItemList: Array<ArrangePosition> = [
+            ArrangePosition.generate('初始化', 999, 0, 'rgba(248, 245, 236, 1)', 0),
+            ArrangePosition.generate('新增人员', 999, 1, 'rgba(246, 246, 238, 1)', 0),
+            ArrangePosition.generate('新增职位', 999, 2, 'rgba(255, 248, 240, 1)', 0),
+            ArrangePosition.generate('清除所有数据', 999, 3, 'rgba(239, 239, 239, 1)', 0)
+        ]
     return (
         <ImageBackground source={ getIconImage('backgroundImage') } resizeMode='cover' style={ styles.ibg }>
             <Modal
@@ -84,6 +58,7 @@ export function ArrangeScreen({ route }: ASRouteParams) {
                 onRequestClose={() => {
                     Alert.alert("Modal has been closed.");
                     setModalVisible(!modalVisible);
+                    // setIsEdit(!isEdit);
                 }}
             >
                 <ScrollView 
@@ -91,23 +66,8 @@ export function ArrangeScreen({ route }: ASRouteParams) {
                     showsVerticalScrollIndicator={true} // 隐藏滚动条（可选）
                 >
                     {/* <View style={ modalStyles.modalView }></View> */}
-                    {/* 人员选择modal */}
                     <View style={ modalStyles.modalView }>
-                        <View style={ modalStyles.selectView }>
-                            {
-                                peopleList.map((item: any, index: number) => (
-                                    <Pressable
-                                        style={ ({ pressed }) => [modalStyles.selectItem, styles.samItemEdit, pressed && styles.samItemActive] }
-                                        key={ index }
-                                        onPress={() => setModalVisible(true)}
-                                    >
-                                        <Text style={ modalStyles.selectItemText }>{ item.name }</Text>
-                                        {/* <Image source={getIconImage(item.imgIndex)} resizeMode="contain" style={ styles.samItemIcon }></Image> */}
-                                    </Pressable>
-                                ))
-                            }
-
-                        </View>
+                        <View style={ modalStyles.selectView }></View>
                     </View>
                 </ScrollView>
             </Modal>
@@ -135,47 +95,20 @@ export function ArrangeScreen({ route }: ASRouteParams) {
                 showsVerticalScrollIndicator={false} // 隐藏滚动条（可选）
             >
                 <View style={ styles.topBanner }>
-                    <Text style={ styles.topText }>{ route.params.title }</Text>
-                    {
-                        isEdit?
-                            (<Pressable
-                                style={ ({ pressed }) => [styles.datePA, styles.datePAEdit, pressed && styles.datePAActive] }
-                                onPress={() => {
-                                    openPeopleSelect()
-                                }}
-                            >
-                                <Text style={ styles.dateText }>2025.6.24-2025.6.26</Text>
-                            </Pressable>)
-                            :
-                            (<Pressable style={ styles.datePA }>
-                                <Text style={ styles.dateText }>2025.6.24-2025.6.26</Text>
-                            </Pressable>)
-                    }
+                    <Text style={ styles.topText }>后台管理</Text>
                 </View>
-                {
-                    !isEdit ? 
-                        (<Text style={ [styles.secondText, { height: 30 }] }>       点击右上角编辑按钮进入编辑模式</Text>)
-                    :
-                        (<Text style={ styles.secondText }>     点击日期进行日期选择，点击职位卡片进行人员选择，选择完毕后按完成按钮退出编辑模式</Text>)
-                }
                 
                 <View style={ styles.samList }>
                     {
                         arrangeItemList.map((item: any, index: number) => (
-                            isEdit?
-                            (<Pressable
+                            <Pressable
                                 style={ ({ pressed }) => [styles.samItem, styles.samItemEdit, { backgroundColor: item.backgroundColor }, pressed && styles.samItemActive] }
                                 key={ index }
                                 onPress={() => setModalVisible(true)}
                             >
                                 <Text style={ styles.samItemText }>| { index + 1 } { item.positionName }</Text>
                                 <Image source={getIconImage(item.imgIndex)} resizeMode="contain" style={ styles.samItemIcon }></Image>
-                            </Pressable>)
-                            :
-                            (<Pressable style={ [styles.samItem, { backgroundColor: item.backgroundColor }] } key={ index }>
-                                <Text style={ styles.samItemText }>| { index + 1 } { item.positionName }</Text>
-                                <Image source={getIconImage(item.imgIndex)} resizeMode="contain" style={ styles.samItemIcon }></Image>
-                            </Pressable>)
+                            </Pressable>
                         ))
                     }
                 </View>
@@ -330,10 +263,9 @@ const modalStyles = StyleSheet.create({
     },
     selectView: {
         flex: 1,
-        margin: 20,
+        margin: 40,
         width: '90%',
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-        borderRadius: 20
+        backgroundColor: 'rgba(112, 54, 54, 0.9)'
     },
     dateModalView: {
         justifyContent: 'center',
@@ -346,27 +278,7 @@ const modalStyles = StyleSheet.create({
         margin: 40,
         width: '90%',
         backgroundColor: 'rgba(0, 0, 0, 0.9)'
-    },
-    
-    selectItem: {
-        // flex: 3,
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        flexDirection: 'row',
-        margin: 20,
-        borderRadius: 10,
-        borderStyle: 'solid',
-        borderWidth: 1,
-        borderColor: 'rgba(216, 213, 206, 1)',
-        backgroundColor: 'rgba(255, 255, 255, 1)'
-    },
-    selectItemText: {
-        paddingRight: 50,
-        textAlignVertical: 'center',
-        height: 80,
-        marginHorizontal: 30,
-        fontFamily: 'SourceHanSerifCN-SemiBold-7',
-        fontSize: 30,
-        textAlign: 'left'
     }
 })
+
+// 

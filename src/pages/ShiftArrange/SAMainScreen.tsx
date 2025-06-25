@@ -3,8 +3,9 @@ import { useEffect } from 'react';
 import { getNavigation } from '@tools/naviHook'
 import { Button } from '@react-navigation/elements';
 import { ROUTE } from '@tools/route'
-import { initTable } from '@tools/initTable'
+import { initArrangeTable } from '@tools/initTable'
 import { useLayoutEffect } from 'react';
+import { ArrangePosition, ArrangePeople } from '@tools/zeroExport'
 
 const backgroundImage = require('@assets/gongfeng-bg.png');
 const getIconImage = (index: number) => {
@@ -16,9 +17,8 @@ const getIconImage = (index: number) => {
     }
     return imgList[index] || require('@assets/m1.png')
 }
-
 export function SAMainScreen() {
-    initTable()
+    initArrangeTable()
     const navigation = getNavigation();
     useLayoutEffect(() => {
             navigation.setOptions({
@@ -34,22 +34,22 @@ export function SAMainScreen() {
     const arrangeItemList = [
         {
             itemName: '早晚课排班',
-            type: 1,
+            positoinType: 0,
             backgroundColor: 'rgba(248, 245, 236, 1)'
         },
         {
             itemName: '斋堂排班',
-            type: 2,
+            positoinType: 1,
             backgroundColor: 'rgba(246, 246, 238, 1)'
         },
         {
             itemName: '钟鼓排班',
-            type: 3,
+            positoinType: 2,
             backgroundColor: 'rgba(255, 248, 240, 1)'
         },
         {
             itemName: '后台管理',
-            type: 4,
+            positoinType: 999,
             backgroundColor: 'rgba(239, 239, 239, 1)'
         }
     ]
@@ -68,7 +68,15 @@ export function SAMainScreen() {
                             <Pressable
                                 style={ ({ pressed }) => [styles.samItem, { backgroundColor: item.backgroundColor }, pressed && styles.samItemActive] } 
                                 key={ index } 
-                                onPress={() => navigation.navigate(ROUTE.ARRANGESCREEN, { arrangeType: item.type })}
+                                onPress={() => {
+                                    switch (item.positoinType) {
+                                        case 999:
+                                            return navigation.navigate(ROUTE.BACKSTAGESCREEN)
+                                        default:
+                                            return navigation.navigate(ROUTE.ARRANGESCREEN, { arrangeType: item.positoinType, title: item.itemName })
+                                    }
+                                    
+                                }}
                             >
                                 <Text style={ styles.samItemText }>| { index + 1 } { item.itemName }</Text>
                                 <Image source={getIconImage(index)} resizeMode="contain" style={ styles.samItemIcon }></Image>
@@ -77,15 +85,6 @@ export function SAMainScreen() {
                     }
                 </View>
             </ScrollView>
-            {/* <View style={ styles.samItem } catch:tap="getBtnTap">
-                <View style={ styles.samItemText }>
-                    <View style={ styles.samItemIcon }>|</View>{{data.title}}
-                </View>
-            </View> */}
-            {/* <Button onPress={() => navigation.navigate(ROUTE.DATABASEMAIN, { testParam: '1' })}>早晚课排班</Button>
-            <Button onPress={() => navigation.navigate(ROUTE.DATABASEMAIN, { testParam: '1' })}>钟鼓排班</Button>
-            <Button onPress={() => navigation.navigate(ROUTE.DATABASEMAIN, { testParam: '1' })}>斋堂排班</Button>
-            <Button onPress={() => navigation.navigate(ROUTE.TESTSCREEN)}>to test</Button> */}
         </ImageBackground>
     )
 }
