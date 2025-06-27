@@ -8,12 +8,12 @@ export class ArrangeList extends Realm.Object<ArrangeList> {
     positoinName!: string; // 职位名
     positionIndex!: number; // 排序用
     isMultiple!: boolean; // 是否多选
-    name!: string; // 人员姓名
+    name!: Array<string>; // 人员姓名
     nameId!: Realm.BSON.ObjectId; // 人员ID
     startDate!: Date; // 开始日期
     endDate!: Date; // 结束日期
 
-    static generate(positionId: Realm.BSON.ObjectId, positoinType: number, positoinName: string, positionIndex: number, isMultiple: boolean, name: string, nameId: Realm.BSON.ObjectId, startDate: Date, endDate: Date) {
+    static generate(positionId: Realm.BSON.ObjectId, positoinType: number, positoinName: string, positionIndex: number, isMultiple: boolean, name: Array<string>, nameId: Realm.BSON.ObjectId, startDate: Date, endDate: Date) {
         return {
             _id: new Realm.BSON.ObjectId(),
             positionId,
@@ -38,7 +38,7 @@ export class ArrangeList extends Realm.Object<ArrangeList> {
             positoinName: 'string',
             positionIndex: 'int',
             isMultiple: 'bool',
-            name: 'string',
+            name: 'string[]',
             nameId: 'objectId',
             startDate: { type: 'date', indexed: true },
             endDate: 'date'

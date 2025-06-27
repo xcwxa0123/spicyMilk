@@ -34,6 +34,7 @@ export function ArrangeScreen({ route }: ASRouteParams) {
     const [multipleModalVisible, setMultipleModalVisible] = useState(false);
     const [dateModalVisible, setDateModalVisible] = useState(false);
     const [isEdit, setIsEdit] = useState(false);
+
     // const [curArrangeDataList, setCurArrangeDataList] = useState([] as Array<any>);
     // const [curStartDate, setCurStartDate] = useState(new Date());
     // const [curEndDate, setCurEndDate] = useState(new Date());
@@ -48,11 +49,7 @@ export function ArrangeScreen({ route }: ASRouteParams) {
                     style={ ({ pressed }) => [styles.rbtn, pressed && styles.rbtnActive] }
                     onPress={() => setIsEdit(!isEdit)}
                 >
-                    {
-                        !isEdit? 
-                        <Image source={ getIconImage('editImage') } style={ styles.editImg }></Image> : 
-                        <Image source={ getIconImage('okImage') } style={ styles.okImg }></Image>
-                    }
+                    <Image source={ isEdit ? getIconImage('okImage') : getIconImage('editImage')} style={ isEdit ? styles.okImg : styles.editImg }></Image>
                 </Pressable>
             ),
             title: '',
@@ -91,18 +88,29 @@ export function ArrangeScreen({ route }: ASRouteParams) {
     console.log('康康职位列表捏===========>positionList', positionList)
     console.log('康康数据列表捏===========>dataList', dataList)
 
-    function openPeopleSelect() {
+    // let curPeopleSelect = '';
+    const [curPeopleSelect, setCurPeopleSelect] = useState(new Array());
+    console.log('看看curPeopleSelect==========>', curPeopleSelect)
+    function openPeopleSelect(name: Array<string>) {
+        setModalVisible(true)
+        name && setCurPeopleSelect(name)
+    }
+
+    function openMultiPeopleSelect(name: string){
+
+    }
+
+    function openDateSelect() {
         setDateModalVisible(true)
     }
 
-    let curPeopleSelect = '';
 
     function peopleSelect(item: any){
         console.log('看看选了啥=========>item', item)
-        curPeopleSelect = item.name
+        // debugger
+        setCurPeopleSelect([item.name])
+        // curPeopleSelect = item.name
     }
-
-    let curMultipleSelect = [];
 
     function multiPeopleSelect(item: any) {
         console.log('看看选了啥=========>item', item)
@@ -127,26 +135,16 @@ export function ArrangeScreen({ route }: ASRouteParams) {
                     <View style={ modalStyles.modalView }>
                         <View style={ modalStyles.selectView }>
                             {
-                                peopleList.map((item: any, index: number) => {
-                                    if(curPeopleSelect && item.name == curPeopleSelect){
-                                        return (<Pressable
-                                                    style={ ({ pressed }) => [modalStyles.selectItem, styles.samItemEdit, pressed && styles.samItemActive] }
-                                                    key={ index }
-                                                    disabled={ true }
-                                                >
-                                                    <Text style={ modalStyles.selectItemText }>{ item.name }</Text>
-                                                </Pressable>)
-                                    } else {
-                                        return (<Pressable
-                                                    style={ ({ pressed }) => [modalStyles.selectItem, styles.samItemEdit, pressed && styles.samItemActive] }
-                                                    key={ index }
-                                                    onPress={ _ => peopleSelect(item) }
-                                                >
-                                                    <Text style={ modalStyles.selectItemText }>{ item.name }</Text>
-                                                    {/* <Image source={getIconImage(item.imgIndex)} resizeMode="contain" style={ styles.samItemIcon }></Image> */}
-                                                </Pressable>)
-                                    }
-                                })
+                                peopleList.map((item: any, index: number) => (
+                                    <Pressable
+                                        style={ ({ pressed }) => [modalStyles.selectItem, styles.samItemEdit, pressed && styles.samItemActive, curPeopleSelect && curPeopleSelect.length && curPeopleSelect.findIndex(name => name == item.name) != -1 ? { backgroundColor: 'rgb(136, 136, 136)' } : {}]}
+                                        key={ index }
+                                        onPress={ _ => peopleSelect(item) }
+                                        disabled={ curPeopleSelect && curPeopleSelect.length && curPeopleSelect.findIndex(name => name == item.name) != -1 ? true : false }
+                                    >
+                                        <Text style={ modalStyles.selectItemText }>{ item.name }</Text>
+                                    </Pressable>
+                                ))
                             }
 
                         </View>
@@ -171,7 +169,7 @@ export function ArrangeScreen({ route }: ASRouteParams) {
                         <View style={ modalStyles.selectView }>
                             {
                                 peopleList.map((item: any, index: number) => (
-                                    // 已选的置灰且不可选
+                                    // -TODO 已选的置灰且不可选
                                     <Pressable
                                         style={ ({ pressed }) => [modalStyles.selectItem, styles.samItemEdit, pressed && styles.samItemActive] }
                                         key={ index }
@@ -212,42 +210,31 @@ export function ArrangeScreen({ route }: ASRouteParams) {
             >
                 <View style={ styles.topBanner }>
                     <Text style={ styles.topText }>{ route.params.title }</Text>
-                    {
-                        isEdit?
-                            (<Pressable
-                                style={ ({ pressed }) => [styles.datePA, styles.datePAEdit, pressed && styles.datePAActive] }
-                                onPress={openPeopleSelect}
-                            >
-                                <Text style={ styles.dateText }>{ curStartDate.toLocaleDateString().split('/').join('.') }-{ curEndDate.toLocaleDateString().split('/').join('.') }</Text>
-                            </Pressable>)
-                            :
-                            (<Pressable style={ styles.datePA }>
-                                <Text style={ styles.dateText }>{ curStartDate.toLocaleDateString().split('/').join('.') }-{ curEndDate.toLocaleDateString().split('/').join('.') }</Text>
-                            </Pressable>)
-                    }
+                        <Pressable
+                            style={ ({ pressed }) => [styles.datePA, isEdit && styles.datePAEdit, pressed && styles.datePAActive] }
+                            onPress={openDateSelect}
+                            disabled={ !isEdit }
+                        >
+                            <Text style={ styles.dateText }>{ curStartDate.toLocaleDateString().split('/').join('.') }-{ curEndDate.toLocaleDateString().split('/').join('.') }</Text>
+                        </Pressable>
+                    
                 </View>
-                {
-                    !isEdit ? 
-                        (<Text style={ [styles.secondText, { height: 30 }] }>       点击右上角编辑按钮进入编辑模式</Text>)
-                    :
-                        (<Text style={ styles.secondText }>     点击日期进行日期选择，点击职位卡片进行人员选择，选择完毕后按完成按钮退出编辑模式</Text>)
-                }
+                <Text
+                    style={ [styles.secondText, !isEdit && { height: 30 }] }>
+                               { isEdit ? '点击日期进行日期选择，点击职位卡片进行人员选择，选择完毕后按完成按钮退出编辑模式' : '点击右上角编辑按钮进入编辑模式' }
+                </Text>
+                
                 
                 <View style={ styles.samList }>
                     {
                         curArrangeDataList.map((item: any, index: number) => (
-                            isEdit?
                             (<Pressable
-                                style={ ({ pressed }) => [styles.samItem, styles.samItemEdit, { backgroundColor: item.backgroundColor }, pressed && styles.samItemActive] }
+                                style={ ({ pressed }) => [styles.samItem, isEdit && styles.samItemEdit, { backgroundColor: item.backgroundColor }, pressed && styles.samItemActive] }
                                 key={ index }
-                                onPress={() => item.isMultiple ? setMultipleModalVisible(true) : setModalVisible(true)}
+                                onPress={() => item.isMultiple ? openMultiPeopleSelect(item.name) : openPeopleSelect(item.name)}
+                                disabled={ !isEdit }
                             >
-                                <Text style={ styles.samItemText }>| { index + 1 } { item.positionName }：      { item.name }</Text>
-                                <Image source={getIconImage(item.imgIndex)} resizeMode="contain" style={ styles.samItemIcon }></Image>
-                            </Pressable>)
-                            :
-                            (<Pressable style={ [styles.samItem, { backgroundColor: item.backgroundColor }] } key={ index }>
-                                <Text style={ styles.samItemText }>| { index + 1 } { item.positionName }：      { item.name }</Text>
+                                <Text style={ styles.samItemText }>| { index + 1 } { item.positionName }：      { item.name && item.name.join('、') }</Text>
                                 <Image source={getIconImage(item.imgIndex)} resizeMode="contain" style={ styles.samItemIcon }></Image>
                             </Pressable>)
                         ))
