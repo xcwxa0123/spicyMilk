@@ -97,6 +97,8 @@ export function ArrangeScreen({ route }: ASRouteParams) {
     const [selectedEndDate, setSelectedCurEndDate] = useState<Date | null>(null)
 
     const [curStartDate, curEndDate] = selectedStartDate ? [selectedStartDate, selectedEndDate] : [defaultStartDate, defaultEndDate]
+    // const curStartDate = selectedStartDate ? selectedStartDate : defaultStartDate
+    // const curEndDate = selectedEndDate ? selectedEndDate : defaultEndDate
 
     console.log('康康人员列表捏===========>peopleList', peopleList)
     console.log('康康职位列表捏===========>positionList', positionList)
@@ -232,7 +234,7 @@ export function ArrangeScreen({ route }: ASRouteParams) {
                             onPress={openDateSelect}
                             disabled={ !isEdit }
                         >
-                            <Text style={ styles.dateText }>{ curStartDate.toLocaleDateString().split('/').join('.') }-{ curEndDate && curEndDate.toLocaleDateString().split('/').join('.') }</Text>
+                            <Text style={ styles.dateText }>{ curStartDate && curStartDate.toLocaleDateString().split('/').join('.') }-{ curEndDate && curEndDate.toLocaleDateString().split('/').join('.') }</Text>
                         </Pressable>
                     
                 </View>
