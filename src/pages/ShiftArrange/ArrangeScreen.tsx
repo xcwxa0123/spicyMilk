@@ -1,5 +1,5 @@
 import { ImageBackground, Image, Text, View, StyleSheet, Pressable, ScrollView, Modal, Alert } from 'react-native';
-import { useEffect } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { getNavigation } from '@tools/naviHook'
 import { Button } from '@react-navigation/elements';
 import { RouteList } from '@tools/route'
@@ -29,19 +29,22 @@ const getIconImage = (index: number | string) => {
 type ASRouteParams = { route: RouteProp<RouteList, 'ArrangeScreen'> }
 
 export function ArrangeScreen({ route }: ASRouteParams) {
-    // initTable()
+    const navigation = getNavigation();
     const [modalVisible, setModalVisible] = useState(false);
     const [multipleModalVisible, setMultipleModalVisible] = useState(false);
     const [dateModalVisible, setDateModalVisible] = useState(false);
+    const [curPeopleSelect, setCurPeopleSelect] = useState(new Array());
     const [isEdit, setIsEdit] = useState(false);
 
-    // const [curArrangeDataList, setCurArrangeDataList] = useState([] as Array<any>);
-    // const [curStartDate, setCurStartDate] = useState(new Date());
-    // const [curEndDate, setCurEndDate] = useState(new Date());
-    let curArrangeDataList = [];
-    let curStartDate = new Date();
-    let curEndDate = new Date();
-    const navigation = getNavigation();
+
+    // 给DB查询做缓存，避免重复调取资源
+    const { peopleList, positionList, dataList } = useMemo(() => ({
+        positionList : realm.objects('ArrangePosition').filtered('positoinType == $0', route.params.arrangeType),
+        peopleList : realm.objects('ArrangePeople'),
+        dataList : realm.objects('ArrangeList'),
+    }), [realm, route.params.arrangeType])
+
+    // 导航栏加编辑图标
     useLayoutEffect(() => {
         navigation.setOptions({
             headerRight: () => (
@@ -59,42 +62,57 @@ export function ArrangeScreen({ route }: ASRouteParams) {
             headerTintColor: '#rgba(0, 0, 0, 1)', // 文字/图标颜色
             headerShadowVisible: false,
         });
-    // }, [navigation, isEdit, modalVisible, dateModalVisible, curArrangeDataList, curStartDate, curEndDate]);
     }, [navigation, isEdit]);
     
-    // 进来先全查，peopleList可以做一个缓存在SAMainScreen页面
-    let positionList = realm.objects('ArrangePosition').filtered('positoinType == $0', route.params.arrangeType)
-    let peopleList = realm.objects('ArrangePeople')
-    let dataList = realm.objects('ArrangeList')
-    // debugger
-    if(dataList.length){
-        const curDate = new Date()
-        dataList = dataList.filtered('positoinType == $0 AND startDate < $1', route.params.arrangeType, curDate).sorted('startDate', true)
-        const lastDate = dataList.at(0)
-        curStartDate = lastDate!['startDate'] as Date
-        curEndDate= lastDate!['endDate'] as Date
-        // setCurStartDate(lastDate!['startDate'] as Date)
-        // setCurEndDate(lastDate!['endDate'] as Date)
-        dataList = dataList.filtered('positoinType == $0 AND startDate == $1', route.params.arrangeType, curStartDate).sorted('positionIndex')
-        // setCurArrangeDataList(Array.from(dataList))
-        curArrangeDataList = Array.from(dataList)
-    } else {
-        console.log('看看试试==============>', Array.from(positionList))
-        // setCurArrangeDataList(Array.from(positionList))
-        curArrangeDataList = Array.from(positionList)
-    }
+    // 给页面显示的datalist和开始结束日期做缓存
+    // 
+    // const [curStartDate, setCurStartDate] = useState(new Date())
+    // const [curEndDate, setCurEndDate] = useState(new Date())
+    const { curArrangeDataList, defaultStartDate, defaultEndDate } = useMemo(() => {
+        let tempDataList;
+        let startDate: Date = new Date();
+        let endDate: Date = new Date();
+        if(dataList.length){
+            startDate = new Date()
+            tempDataList = dataList.filtered('positoinType == $0 AND startDate < $1', route.params.arrangeType, startDate).sorted('startDate', true)
+            
+            const lastDate = tempDataList.at(0)
+            startDate = lastDate!['startDate'] as Date
+            endDate = lastDate!['endDate'] as Date
+            tempDataList = dataList.filtered('positoinType == $0 AND startDate == $1', route.params.arrangeType, startDate).sorted('positionIndex')
+            tempDataList = Array.from(tempDataList)
+        } else {
+            console.log('看看试试==============>', Array.from(positionList))
+            // setCurArrangeDataList(Array.from(positionList))
+            tempDataList = Array.from(positionList)
+        }
+        return {
+            curArrangeDataList: tempDataList,
+            defaultStartDate: startDate,
+            defaultEndDate: endDate
+        }
+    }, [dataList, positionList, route.params.arrangeType])
+
+    const [selectedStartDate, setSelectedCurStartDate] = useState<Date | null>(null)
+    const [selectedEndDate, setSelectedCurEndDate] = useState<Date | null>(null)
+
+    const [curStartDate, curEndDate] = selectedStartDate ? [selectedStartDate, selectedEndDate] : [defaultStartDate, defaultEndDate]
 
     console.log('康康人员列表捏===========>peopleList', peopleList)
     console.log('康康职位列表捏===========>positionList', positionList)
     console.log('康康数据列表捏===========>dataList', dataList)
 
-    // let curPeopleSelect = '';
-    const [curPeopleSelect, setCurPeopleSelect] = useState(new Array());
     console.log('看看curPeopleSelect==========>', curPeopleSelect)
-    function openPeopleSelect(name: Array<string>) {
+
+    const openPeopleSelect = useCallback((name: Array<string>) => {
         setModalVisible(true)
         name && setCurPeopleSelect(name)
-    }
+    }, [])
+
+    // function openPeopleSelect(name: Array<string>) {
+    //     setModalVisible(true)
+    //     name && setCurPeopleSelect(name)
+    // }
 
     function openMultiPeopleSelect(name: string){
 
@@ -105,12 +123,11 @@ export function ArrangeScreen({ route }: ASRouteParams) {
     }
 
 
-    function peopleSelect(item: any){
+    const peopleSelect = useCallback((item: any) => {
         console.log('看看选了啥=========>item', item)
         // debugger
         setCurPeopleSelect([item.name])
-        // curPeopleSelect = item.name
-    }
+    }, [])
 
     function multiPeopleSelect(item: any) {
         console.log('看看选了啥=========>item', item)
@@ -215,7 +232,7 @@ export function ArrangeScreen({ route }: ASRouteParams) {
                             onPress={openDateSelect}
                             disabled={ !isEdit }
                         >
-                            <Text style={ styles.dateText }>{ curStartDate.toLocaleDateString().split('/').join('.') }-{ curEndDate.toLocaleDateString().split('/').join('.') }</Text>
+                            <Text style={ styles.dateText }>{ curStartDate.toLocaleDateString().split('/').join('.') }-{ curEndDate && curEndDate.toLocaleDateString().split('/').join('.') }</Text>
                         </Pressable>
                     
                 </View>
