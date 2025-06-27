@@ -26,23 +26,20 @@ const getIconImage = (index: number | string) => {
     return imgList[index] || require('@assets/m1.png')
 }
 
-
-// const dataPlusDC = () => {
-//     realm.write(() => {
-//         const data = ArrangePosition.generate()
-//         realm.create('TimeLineSum', data)
-//     })
-
-// }
-
-// let result = realm.objects(route.params.dbName)
 type ASRouteParams = { route: RouteProp<RouteList, 'ArrangeScreen'> }
 
 export function ArrangeScreen({ route }: ASRouteParams) {
     // initTable()
     const [modalVisible, setModalVisible] = useState(false);
+    const [multipleModalVisible, setMultipleModalVisible] = useState(false);
     const [dateModalVisible, setDateModalVisible] = useState(false);
-    const [isEdit, setIsEdit] = useState(false)
+    const [isEdit, setIsEdit] = useState(false);
+    // const [curArrangeDataList, setCurArrangeDataList] = useState([] as Array<any>);
+    // const [curStartDate, setCurStartDate] = useState(new Date());
+    // const [curEndDate, setCurEndDate] = useState(new Date());
+    let curArrangeDataList = [];
+    let curStartDate = new Date();
+    let curEndDate = new Date();
     const navigation = getNavigation();
     useLayoutEffect(() => {
         navigation.setOptions({
@@ -65,15 +62,51 @@ export function ArrangeScreen({ route }: ASRouteParams) {
             headerTintColor: '#rgba(0, 0, 0, 1)', // 文字/图标颜色
             headerShadowVisible: false,
         });
-    }, [navigation, isEdit, modalVisible, dateModalVisible]);
+    // }, [navigation, isEdit, modalVisible, dateModalVisible, curArrangeDataList, curStartDate, curEndDate]);
+    }, [navigation, isEdit]);
     
-    let arrangeItemList = realm.objects('ArrangePosition').filtered('positoinType == $0', route.params.arrangeType)
+    // 进来先全查，peopleList可以做一个缓存在SAMainScreen页面
+    let positionList = realm.objects('ArrangePosition').filtered('positoinType == $0', route.params.arrangeType)
     let peopleList = realm.objects('ArrangePeople')
+    let dataList = realm.objects('ArrangeList')
+    // debugger
+    if(dataList.length){
+        const curDate = new Date()
+        dataList = dataList.filtered('positoinType == $0 AND startDate < $1', route.params.arrangeType, curDate).sorted('startDate', true)
+        const lastDate = dataList.at(0)
+        curStartDate = lastDate!['startDate'] as Date
+        curEndDate= lastDate!['endDate'] as Date
+        // setCurStartDate(lastDate!['startDate'] as Date)
+        // setCurEndDate(lastDate!['endDate'] as Date)
+        dataList = dataList.filtered('positoinType == $0 AND startDate == $1', route.params.arrangeType, curStartDate).sorted('positionIndex')
+        // setCurArrangeDataList(Array.from(dataList))
+        curArrangeDataList = Array.from(dataList)
+    } else {
+        console.log('看看试试==============>', Array.from(positionList))
+        // setCurArrangeDataList(Array.from(positionList))
+        curArrangeDataList = Array.from(positionList)
+    }
+
     console.log('康康人员列表捏===========>peopleList', peopleList)
+    console.log('康康职位列表捏===========>positionList', positionList)
+    console.log('康康数据列表捏===========>dataList', dataList)
 
     function openPeopleSelect() {
         setDateModalVisible(true)
     }
+
+    let curPeopleSelect = '';
+
+    function peopleSelect(item: any){
+        console.log('看看选了啥=========>item', item)
+        curPeopleSelect = item.name
+    }
+
+    let curMultipleSelect = [];
+
+    function multiPeopleSelect(item: any) {
+        console.log('看看选了啥=========>item', item)
+    } 
 
     return (
         <ImageBackground source={ getIconImage('backgroundImage') } resizeMode='cover' style={ styles.ibg }>
@@ -82,7 +115,7 @@ export function ArrangeScreen({ route }: ASRouteParams) {
                 transparent={true}
                 visible={modalVisible}
                 onRequestClose={() => {
-                    Alert.alert("Modal has been closed.");
+                    Alert.alert("单选框关闭");
                     setModalVisible(!modalVisible);
                 }}
             >
@@ -90,18 +123,61 @@ export function ArrangeScreen({ route }: ASRouteParams) {
                     contentContainerStyle={styles.scrollContainer}
                     showsVerticalScrollIndicator={true} // 隐藏滚动条（可选）
                 >
-                    {/* <View style={ modalStyles.modalView }></View> */}
                     {/* 人员选择modal */}
                     <View style={ modalStyles.modalView }>
                         <View style={ modalStyles.selectView }>
                             {
+                                peopleList.map((item: any, index: number) => {
+                                    if(curPeopleSelect && item.name == curPeopleSelect){
+                                        return (<Pressable
+                                                    style={ ({ pressed }) => [modalStyles.selectItem, styles.samItemEdit, pressed && styles.samItemActive] }
+                                                    key={ index }
+                                                    disabled={ true }
+                                                >
+                                                    <Text style={ modalStyles.selectItemText }>{ item.name }</Text>
+                                                </Pressable>)
+                                    } else {
+                                        return (<Pressable
+                                                    style={ ({ pressed }) => [modalStyles.selectItem, styles.samItemEdit, pressed && styles.samItemActive] }
+                                                    key={ index }
+                                                    onPress={ _ => peopleSelect(item) }
+                                                >
+                                                    <Text style={ modalStyles.selectItemText }>{ item.name }</Text>
+                                                    {/* <Image source={getIconImage(item.imgIndex)} resizeMode="contain" style={ styles.samItemIcon }></Image> */}
+                                                </Pressable>)
+                                    }
+                                })
+                            }
+
+                        </View>
+                    </View>
+                </ScrollView>
+            </Modal>
+            <Modal
+                animationType="slide"
+                transparent={true}
+                visible={multipleModalVisible}
+                onRequestClose={() => {
+                    Alert.alert("多选框关闭");
+                    setMultipleModalVisible(!multipleModalVisible);
+                }}
+            >
+                <ScrollView 
+                    contentContainerStyle={styles.scrollContainer}
+                    showsVerticalScrollIndicator={true} // 隐藏滚动条（可选）
+                >
+                    {/* 人员多选modal */}
+                    <View style={ modalStyles.modalView }>
+                        <View style={ modalStyles.selectView }>
+                            {
                                 peopleList.map((item: any, index: number) => (
+                                    // 已选的置灰且不可选
                                     <Pressable
                                         style={ ({ pressed }) => [modalStyles.selectItem, styles.samItemEdit, pressed && styles.samItemActive] }
                                         key={ index }
-                                        onPress={() => setModalVisible(true)}
+                                        onPress={ _ => multiPeopleSelect(item) }
                                     >
-                                        <Text style={ modalStyles.selectItemText }>{ item.name }</Text>
+                                        <Text style={ modalStyles.selectItemText }>{ item.name }多选</Text>
                                         {/* <Image source={getIconImage(item.imgIndex)} resizeMode="contain" style={ styles.samItemIcon }></Image> */}
                                     </Pressable>
                                 ))
@@ -140,15 +216,13 @@ export function ArrangeScreen({ route }: ASRouteParams) {
                         isEdit?
                             (<Pressable
                                 style={ ({ pressed }) => [styles.datePA, styles.datePAEdit, pressed && styles.datePAActive] }
-                                onPress={() => {
-                                    openPeopleSelect()
-                                }}
+                                onPress={openPeopleSelect}
                             >
-                                <Text style={ styles.dateText }>2025.6.24-2025.6.26</Text>
+                                <Text style={ styles.dateText }>{ curStartDate.toLocaleDateString().split('/').join('.') }-{ curEndDate.toLocaleDateString().split('/').join('.') }</Text>
                             </Pressable>)
                             :
                             (<Pressable style={ styles.datePA }>
-                                <Text style={ styles.dateText }>2025.6.24-2025.6.26</Text>
+                                <Text style={ styles.dateText }>{ curStartDate.toLocaleDateString().split('/').join('.') }-{ curEndDate.toLocaleDateString().split('/').join('.') }</Text>
                             </Pressable>)
                     }
                 </View>
@@ -161,19 +235,19 @@ export function ArrangeScreen({ route }: ASRouteParams) {
                 
                 <View style={ styles.samList }>
                     {
-                        arrangeItemList.map((item: any, index: number) => (
+                        curArrangeDataList.map((item: any, index: number) => (
                             isEdit?
                             (<Pressable
                                 style={ ({ pressed }) => [styles.samItem, styles.samItemEdit, { backgroundColor: item.backgroundColor }, pressed && styles.samItemActive] }
                                 key={ index }
-                                onPress={() => setModalVisible(true)}
+                                onPress={() => item.isMultiple ? setMultipleModalVisible(true) : setModalVisible(true)}
                             >
-                                <Text style={ styles.samItemText }>| { index + 1 } { item.positionName }</Text>
+                                <Text style={ styles.samItemText }>| { index + 1 } { item.positionName }：      { item.name }</Text>
                                 <Image source={getIconImage(item.imgIndex)} resizeMode="contain" style={ styles.samItemIcon }></Image>
                             </Pressable>)
                             :
                             (<Pressable style={ [styles.samItem, { backgroundColor: item.backgroundColor }] } key={ index }>
-                                <Text style={ styles.samItemText }>| { index + 1 } { item.positionName }</Text>
+                                <Text style={ styles.samItemText }>| { index + 1 } { item.positionName }：      { item.name }</Text>
                                 <Image source={getIconImage(item.imgIndex)} resizeMode="contain" style={ styles.samItemIcon }></Image>
                             </Pressable>)
                         ))

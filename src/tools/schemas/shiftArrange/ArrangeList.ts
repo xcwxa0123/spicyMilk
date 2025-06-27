@@ -3,18 +3,26 @@
 import { Realm } from '@realm/react'
 export class ArrangeList extends Realm.Object<ArrangeList> {
     _id!: Realm.BSON.ObjectId; // 主键
-    positionName!: string; // 职位
+    positionId!: Realm.BSON.ObjectId; // 职位ID
     positoinType!: number; // 职位所属类别 比如晨钟暮鼓类别
+    positoinName!: string; // 职位名
+    positionIndex!: number; // 排序用
+    isMultiple!: boolean; // 是否多选
     name!: string; // 人员姓名
+    nameId!: Realm.BSON.ObjectId; // 人员ID
     startDate!: Date; // 开始日期
     endDate!: Date; // 结束日期
 
-    static generate(positionName: string, positoinType: number, name: string, startDate: Date, endDate: Date) {
+    static generate(positionId: Realm.BSON.ObjectId, positoinType: number, positoinName: string, positionIndex: number, isMultiple: boolean, name: string, nameId: Realm.BSON.ObjectId, startDate: Date, endDate: Date) {
         return {
             _id: new Realm.BSON.ObjectId(),
-            positionName,
+            positionId,
             positoinType,
+            positoinName,
+            positionIndex,
+            isMultiple,
             name,
+            nameId,
             startDate,
             endDate
         } as ArrangeList;
@@ -25,10 +33,14 @@ export class ArrangeList extends Realm.Object<ArrangeList> {
         primaryKey: '_id',
         properties: {
             _id: 'objectId',
-            positionName: 'string',
+            positionId: 'objectId',
             positoinType: 'int',
+            positoinName: 'string',
+            positionIndex: 'int',
+            isMultiple: 'bool',
             name: 'string',
-            startDate: 'date',
+            nameId: 'objectId',
+            startDate: { type: 'date', indexed: true },
             endDate: 'date'
         },
     };

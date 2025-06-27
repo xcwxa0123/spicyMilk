@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Realm, RealmProvider, useRealm, useQuery } from '@realm/react'
 // import { AsyncStorage } from 'react-native'; // 用于存储标志位
-import { Main, DungeonCategory, TimeLineSum, TimeLine, ArrangePosition, ArrangePeople } from '@tools/zeroExport'
+import { Main, DungeonCategory, TimeLineSum, TimeLine, ArrangePosition, ArrangePeople, ArrangeList } from '@tools/zeroExport'
 
 const MainContainer = [
 	Main.generate('时间轴', '时间轴排轴工具', 0),
@@ -17,23 +17,23 @@ const DCContainer = [
 const ArrangePositionContainer = [
 	// 名字，分类，图片，颜色
 	// 早晚课
-	ArrangePosition.generate('唯那', 0, 0, 'rgba(248, 245, 236, 1)', 0),
-	ArrangePosition.generate('木鱼', 0, 1, 'rgba(246, 246, 238, 1)', 1),
-	ArrangePosition.generate('引磬', 0, 2, 'rgba(255, 248, 240, 1)', 2),
-	ArrangePosition.generate('小木鱼', 0, 3, 'rgba(239, 239, 239, 1)', 3),
-	ArrangePosition.generate('铃鼓', 0, 4, 'rgba(236, 236, 236, 1)', 4),
-	ArrangePosition.generate('出食', 0, 5, 'rgba(240, 240, 236, 1)', 5),
+	ArrangePosition.generate('唯那', 0, 0, 'rgba(248, 245, 236, 1)', 0, false),
+	ArrangePosition.generate('木鱼', 0, 1, 'rgba(246, 246, 238, 1)', 1, false),
+	ArrangePosition.generate('引磬', 0, 2, 'rgba(255, 248, 240, 1)', 2, false),
+	ArrangePosition.generate('小木鱼', 0, 3, 'rgba(239, 239, 239, 1)', 3, false),
+	ArrangePosition.generate('铃鼓', 0, 4, 'rgba(236, 236, 236, 1)', 4, false),
+	ArrangePosition.generate('出食', 0, 5, 'rgba(240, 240, 236, 1)', 5, false),
 
 	// 钟鼓
-	ArrangePosition.generate('早钟', 1, 0, 'rgba(248, 245, 236, 1)', 0),
-	ArrangePosition.generate('早鼓', 1, 1, 'rgba(246, 246, 238, 1)', 1),
-	ArrangePosition.generate('晚钟', 1, 2, 'rgba(255, 248, 240, 1)', 2),
-	ArrangePosition.generate('晚鼓', 1, 3, 'rgba(239, 239, 239, 1)', 3),
+	ArrangePosition.generate('早钟', 1, 0, 'rgba(248, 245, 236, 1)', 0, false),
+	ArrangePosition.generate('早鼓', 1, 1, 'rgba(246, 246, 238, 1)', 1, false),
+	ArrangePosition.generate('晚钟', 1, 2, 'rgba(255, 248, 240, 1)', 2, false),
+	ArrangePosition.generate('晚鼓', 1, 3, 'rgba(239, 239, 239, 1)', 3, false),
 
 	// 斋堂
-	ArrangePosition.generate('早斋行堂', 2, 0, 'rgba(248, 245, 236, 1)', 0),
-	ArrangePosition.generate('午斋行堂', 2, 1, 'rgba(246, 246, 238, 1)', 1),
-	ArrangePosition.generate('出食', 2, 2, 'rgba(255, 248, 240, 1)', 2),
+	ArrangePosition.generate('早斋行堂', 2, 0, 'rgba(248, 245, 236, 1)', 0, true),
+	ArrangePosition.generate('午斋行堂', 2, 1, 'rgba(246, 246, 238, 1)', 1, true),
+	ArrangePosition.generate('出食', 2, 2, 'rgba(255, 248, 240, 1)', 2, false),
 ]
 
 const ArrangePeopleContainer = [

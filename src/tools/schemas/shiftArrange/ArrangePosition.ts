@@ -8,15 +8,17 @@ export class ArrangePosition extends Realm.Object<ArrangePosition> {
     imgIndex!: number; // 图片index
     backgroundColor!: string; // 背景颜色
     positionIndex!: number; // 用于排序
+    isMultiple!: boolean; // 是否多选
 
-    static generate(positionName: string, positoinType: number, imgIndex: number, backgroundColor: string, positionIndex: number) {
+    static generate(positionName: string, positoinType: number, imgIndex: number, backgroundColor: string, positionIndex: number, isMultiple: boolean = false) {
         return {
             _id: new Realm.BSON.ObjectId(),
             positionName,
             positoinType,
             imgIndex,
             backgroundColor,
-            positionIndex
+            positionIndex,
+            isMultiple
         } as ArrangePosition;
     }
 
@@ -29,7 +31,8 @@ export class ArrangePosition extends Realm.Object<ArrangePosition> {
             positoinType: 'int',
             imgIndex: 'int',
             backgroundColor: 'string',
-            positionIndex: 'int'
+            positionIndex: 'int',
+            isMultiple: 'bool'
         },
     };
 }
