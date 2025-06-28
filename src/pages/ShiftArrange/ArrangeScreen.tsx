@@ -8,7 +8,7 @@ import { useLayoutEffect } from 'react';
 import { RouteProp } from '@react-navigation/native';
 import { useState } from 'react';
 import { useRealm } from '@realm/react';
-import { Main, DungeonCategory, TimeLineSum, TimeLine, ArrangePosition, ArrangePeople } from '@tools/zeroExport'
+import { ArrangeList } from '@tools/zeroExport'
 
 const realm = useRealm()
 
@@ -33,7 +33,8 @@ export function ArrangeScreen({ route }: ASRouteParams) {
     const [modalVisible, setModalVisible] = useState(false);
     const [multipleModalVisible, setMultipleModalVisible] = useState(false);
     const [dateModalVisible, setDateModalVisible] = useState(false);
-    const [curPeopleSelect, setCurPeopleSelect] = useState(new Array());
+    const [curPeopleSelect, setCurPeopleSelect] = useState<{ [key: string]: any }>(new Array());
+    const [curPositionSelect, setCurPositionSelect] = useState({});
     const [isEdit, setIsEdit] = useState(false);
 
 
@@ -52,7 +53,7 @@ export function ArrangeScreen({ route }: ASRouteParams) {
                     style={ ({ pressed }) => [styles.rbtn, pressed && styles.rbtnActive] }
                     onPress={() => setIsEdit(!isEdit)}
                 >
-                    <Image source={ isEdit ? getIconImage('okImage') : getIconImage('editImage')} style={ isEdit ? styles.okImg : styles.editImg }></Image>
+                    <Image source={ isEdit ? getIconImage('okImage') : getIconImage('editImage')} style={ [{ resizeMode: 'contain' }] }></Image>
                 </Pressable>
             ),
             title: '',
@@ -106,15 +107,33 @@ export function ArrangeScreen({ route }: ASRouteParams) {
 
     console.log('看看curPeopleSelect==========>', curPeopleSelect)
 
-    const openPeopleSelect = useCallback((name: Array<string>) => {
+    const openPeopleSelect = useCallback((item: any) => {
+        console.log('看看选了哪条item========>', item)
         setModalVisible(true)
-        name && setCurPeopleSelect(name)
+        if(item.name){
+            setCurPeopleSelect({
+                name: item.name,
+                nameId: item.nameId
+            })
+        }
+        
+        // positionId!: Realm.BSON.ObjectId; // 职位ID
+        // positoinType!: number; // 职位所属类别 比如晨钟暮鼓类别
+        // positoinName!: string; // 职位名
+        // positionIndex!: number; // 排序用
+        // isMultiple!: boolean; // 是否多选
+        // name!: Array<string>; // 人员姓名
+        // nameId!: Realm.BSON.ObjectId; // 人员ID
+        // startDate!: Date; // 开始日期
+        // endDate!: Date; // 结束日期
+        setCurPositionSelect({
+            positionId: item._id,
+            positoinType: item.positoinType,
+            positoinName: item.positionName,
+            positionIndex: item.positionIndex,
+            isMultiple: item.isMultiple,
+        })
     }, [])
-
-    // function openPeopleSelect(name: Array<string>) {
-    //     setModalVisible(true)
-    //     name && setCurPeopleSelect(name)
-    // }
 
     function openMultiPeopleSelect(name: string){
 
@@ -126,9 +145,43 @@ export function ArrangeScreen({ route }: ASRouteParams) {
 
 
     const peopleSelect = useCallback((item: any) => {
-        console.log('看看选了啥=========>item', item)
-        // debugger
-        setCurPeopleSelect([item.name])
+        setCurPeopleSelect([{
+            name: item.name,
+            nameId: item.nameId
+        }])
+    }, [])
+
+    // const selectBtnConfirm = useCallback(() => {
+    //     // positionId!: Realm.BSON.ObjectId; // 职位ID
+    //     // positoinType!: number; // 职位所属类别 比如晨钟暮鼓类别
+    //     // positoinName!: string; // 职位名
+    //     // positionIndex!: number; // 排序用
+    //     // isMultiple!: boolean; // 是否多选
+    //     // name!: Array<string>; // 人员姓名
+    //     // nameId!: Realm.BSON.ObjectId; // 人员ID
+    //     // startDate!: Date; // 开始日期
+    //     // endDate!: Date; // 结束日期
+        
+    //     // realm.write(() => {
+    //     //     realm.create(ArrangeList, ArrangeList.generate())
+    //     // });
+    //     // const data = Object.assign(curPeopleSelect, curPositionSelect, { curStartDate, curEndDate })
+    //     console.log('康康要写入的curPeopleSelect===================>', curPeopleSelect)
+    //     console.log('康康要写入的curPositionSelect===================>', curPositionSelect)
+    //     console.log('康康要写入的{ curStartDate, curEndDate }===================>', { curStartDate, curEndDate })
+    //     setModalVisible(false)
+    // }, [curPositionSelect, curPeopleSelect, curStartDate, curEndDate])
+
+    function selectBtnConfirm() {
+        console.log('康康要写入的curPeopleSelect===================>', curPeopleSelect)
+        console.log('康康要写入的curPositionSelect===================>', curPositionSelect)
+        console.log('康康要写入的{ curStartDate, curEndDate }===================>', { curStartDate, curEndDate })
+        setModalVisible(false)
+    }
+    
+    const selectBtnCancel = useCallback(() => {
+        setCurPeopleSelect([{}])
+        setModalVisible(false)
     }, [])
 
     function multiPeopleSelect(item: any) {
@@ -141,10 +194,7 @@ export function ArrangeScreen({ route }: ASRouteParams) {
                 animationType="slide"
                 transparent={true}
                 visible={modalVisible}
-                onRequestClose={() => {
-                    Alert.alert("单选框关闭");
-                    setModalVisible(!modalVisible);
-                }}
+                onRequestClose={ selectBtnCancel }
             >
                 <ScrollView 
                     contentContainerStyle={styles.scrollContainer}
@@ -156,16 +206,30 @@ export function ArrangeScreen({ route }: ASRouteParams) {
                             {
                                 peopleList.map((item: any, index: number) => (
                                     <Pressable
-                                        style={ ({ pressed }) => [modalStyles.selectItem, styles.samItemEdit, pressed && styles.samItemActive, curPeopleSelect && curPeopleSelect.length && curPeopleSelect.findIndex(name => name == item.name) != -1 ? { backgroundColor: 'rgb(136, 136, 136)' } : {}]}
+                                        style={ ({ pressed }) => [modalStyles.selectItem, styles.samItemEdit, pressed && styles.samItemActive, curPeopleSelect && curPeopleSelect.length && curPeopleSelect.findIndex((sp: { [key: string]: any }) => sp.name == item.name) != -1 ? { backgroundColor: 'rgb(136, 136, 136)' } : {}]}
                                         key={ index }
                                         onPress={ _ => peopleSelect(item) }
-                                        disabled={ curPeopleSelect && curPeopleSelect.length && curPeopleSelect.findIndex(name => name == item.name) != -1 ? true : false }
+                                        disabled={ curPeopleSelect && curPeopleSelect.length && curPeopleSelect.findIndex((sp: { [key: string]: any })=> sp.name == item.name) != -1 ? true : false }
                                     >
                                         <Text style={ modalStyles.selectItemText }>{ item.name }</Text>
                                     </Pressable>
                                 ))
                             }
-
+                            
+                            <View style={ modalStyles.bottomView }>
+                                <Pressable 
+                                    style={ ({ pressed }) => [modalStyles.bottomBtn, styles.samItemEdit, styles.bgYellow, pressed && styles.samItemActive] }
+                                    onPress={ selectBtnConfirm }
+                                >
+                                    <Text style={ modalStyles.btnText }>确认</Text>
+                                </Pressable>
+                                <Pressable 
+                                    style={ ({ pressed }) => [modalStyles.bottomBtn, styles.samItemEdit, styles.bgWhite, pressed && styles.samItemActive ] }
+                                    onPress={ selectBtnCancel }
+                                >
+                                    <Text style={ modalStyles.btnText }>关闭</Text>
+                                </Pressable>
+                            </View>
                         </View>
                     </View>
                 </ScrollView>
@@ -179,7 +243,7 @@ export function ArrangeScreen({ route }: ASRouteParams) {
                     setMultipleModalVisible(!multipleModalVisible);
                 }}
             >
-                <ScrollView 
+                <ScrollView
                     contentContainerStyle={styles.scrollContainer}
                     showsVerticalScrollIndicator={true} // 隐藏滚动条（可选）
                 >
@@ -200,6 +264,14 @@ export function ArrangeScreen({ route }: ASRouteParams) {
                                 ))
                             }
 
+                        </View>
+                        <View>
+                            <Pressable>
+                                <Text>确认</Text>
+                            </Pressable>
+                            <Pressable>
+                                <Text>关闭</Text>
+                            </Pressable>
                         </View>
                     </View>
                 </ScrollView>
@@ -250,7 +322,7 @@ export function ArrangeScreen({ route }: ASRouteParams) {
                             (<Pressable
                                 style={ ({ pressed }) => [styles.samItem, isEdit && styles.samItemEdit, { backgroundColor: item.backgroundColor }, pressed && styles.samItemActive] }
                                 key={ index }
-                                onPress={() => item.isMultiple ? openMultiPeopleSelect(item.name) : openPeopleSelect(item.name)}
+                                onPress={() => item.isMultiple ? openMultiPeopleSelect(item) : openPeopleSelect(item)}
                                 disabled={ !isEdit }
                             >
                                 <Text style={ styles.samItemText }>| { index + 1 } { item.positionName }：      { item.name && item.name.join('、') }</Text>
@@ -363,14 +435,17 @@ const styles = StyleSheet.create({
         fontSize: 30,
         textAlign: 'left'
     },
+    editImg: {
+        // width: '100%',
+        resizeMode: 'contain',
+        
+    },
+    okImg: {
+    },
     rbtn: {
-        aspectRatio: 1,
-        width: '20%',
-        // margin: 20,
-        marginRight: 0,
-        marginLeft: 120,
+        padding: 0,
         height: 'auto',
-        position: 'relative',
+        // position: 'relative',
         // right: -20,
         borderRadius: 10,
         // borderStyle: 'solid',
@@ -388,16 +463,14 @@ const styles = StyleSheet.create({
         top: 3,
         right: 2,
     },
-    editImg: {
-        width: '100%',
-        resizeMode: 'contain',
-        
+    bgWhite: {
+        backgroundColor: 'rgba(255, 255, 255, 1)'
     },
-    okImg: {
-        width: '100%',
-        resizeMode: 'contain',
-        // aspectRatio: 1,
-        // width: '100%'
+    bgYellow: {
+        backgroundColor: 'rgba(250, 240, 216, 1)'
+    },
+    bgGrey: {
+        backgroundColor: 'rgba(216, 213, 206, 1)'      
     }
 });
 
@@ -448,5 +521,42 @@ const modalStyles = StyleSheet.create({
         fontFamily: 'SourceHanSerifCN-SemiBold-7',
         fontSize: 30,
         textAlign: 'left'
+    },
+    bottomView: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center'
+        
+    },
+    bottomBtn: {
+        flex: 1,
+        margin: 50,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 10,
+        borderStyle: 'solid',
+        borderWidth: 1,
+        borderColor: 'rgba(158, 155, 149, 1)'
+    },
+    cancelBtn: {
+        flex: 1,
+        margin: 50,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 10,
+        borderStyle: 'solid',
+        borderWidth: 1,
+        borderColor: 'rgba(216, 213, 206, 1)',
+        backgroundColor: 'rgba(255, 255, 255, 1)'
+    },
+    btnText: {
+        // paddingRight: 50,
+        textAlignVertical: 'center',
+        height: 80,
+        // marginHorizontal: 30,
+        fontFamily: 'SourceHanSerifCN-SemiBold-7',
+        fontSize: 30,
+        textAlign: 'center'
     }
 })
