@@ -1,5 +1,5 @@
 import { ImageBackground, Image, Text, View, StyleSheet, Pressable, ScrollView, Modal, Alert } from 'react-native';
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { getNavigation } from '@tools/naviHook'
 import { Button } from '@react-navigation/elements';
 import { RouteList } from '@tools/route'
@@ -44,11 +44,32 @@ export function BackStageScreen({ route }: BackStageScreen) {
     }, [navigation]);
     
     let arrangeItemList: Array<ArrangePosition> = [
-            ArrangePosition.generate('初始化', 999, 0, 'rgba(248, 245, 236, 1)', 0),
-            ArrangePosition.generate('新增人员', 999, 1, 'rgba(246, 246, 238, 1)', 0),
-            ArrangePosition.generate('新增职位', 999, 2, 'rgba(255, 248, 240, 1)', 0),
-            ArrangePosition.generate('清除所有数据', 999, 3, 'rgba(239, 239, 239, 1)', 0)
-        ]
+        ArrangePosition.generate('初始化', 999, 0, 'rgba(248, 245, 236, 1)', 0),
+        ArrangePosition.generate('新增人员', 999, 1, 'rgba(246, 246, 238, 1)', 0),
+        ArrangePosition.generate('新增职位', 999, 2, 'rgba(255, 248, 240, 1)', 0),
+        ArrangePosition.generate('清除所有数据', 999, 3, 'rgba(239, 239, 239, 1)', 0)
+    ]
+
+    const dataOprate = useCallback((item: any) => {
+        console.log('item=========>', item)
+        switch (item.positionIndex) {
+            case 0:
+                try {
+                    realm.write(() => {
+                        realm.delete(realm.objects('ArrangeList'))
+                    })
+                    Alert.alert("成功清除所有ArrangeList数据");
+                } catch (error) {
+                    Alert.alert("失败，查看console");
+                    console.log('清理失败error================>', error)
+                }
+                break;
+        
+            default:
+                break;
+        }
+    }, [])
+
     return (
         <ImageBackground source={ getIconImage('backgroundImage') } resizeMode='cover' style={ styles.ibg }>
             <Modal
@@ -104,7 +125,7 @@ export function BackStageScreen({ route }: BackStageScreen) {
                             <Pressable
                                 style={ ({ pressed }) => [styles.samItem, styles.samItemEdit, { backgroundColor: item.backgroundColor }, pressed && styles.samItemActive] }
                                 key={ index }
-                                onPress={() => setModalVisible(true)}
+                                onPress={() => dataOprate(item)}
                             >
                                 <Text style={ styles.samItemText }>| { index + 1 } { item.positionName }</Text>
                                 <Image source={getIconImage(item.imgIndex)} resizeMode="contain" style={ styles.samItemIcon }></Image>

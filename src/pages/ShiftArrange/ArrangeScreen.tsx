@@ -9,9 +9,25 @@ import { RouteProp } from '@react-navigation/native';
 import { useState } from 'react';
 import { useRealm } from '@realm/react';
 import { ArrangeList } from '@tools/zeroExport'
+import { Calendar, LocaleConfig } from 'react-native-calendars';
+import { eachDayOfInterval, format, compareDesc } from "date-fns";
 
+
+// -TODO cn对象整合到工具里，方便整体修改
+LocaleConfig.locales['cn'] = {
+    monthNames: ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'],
+    monthNamesShort: ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'],
+    dayNames: ['周日', '周一', '周二', '周三', '周四', '周五', '周六'],
+    dayNamesShort: ['七', '一', '二', '三', '四', '五', '六'],
+    today: "今天"
+}
+
+LocaleConfig.defaultLocale = 'cn';
+
+// -TODO 日后整合到工具里，这样一改全改方便
 const realm = useRealm()
 
+// -TODO 日后整合到工具里，省的每个页面都写
 const getIconImage = (index: number | string) => {
     const imgList: Record<number| string, any> = {
         0: require('@assets/m2.png'),
@@ -25,26 +41,40 @@ const getIconImage = (index: number | string) => {
     }
     return imgList[index] || require('@assets/m1.png')
 }
-
+// 路由参数type，找RouteList中的ArrangeScreen，把它的参数类型赋给route
+// -TODO日后整合到一起，就放输出路由的那里
 type ASRouteParams = { route: RouteProp<RouteList, 'ArrangeScreen'> }
 
 export function ArrangeScreen({ route }: ASRouteParams) {
     const navigation = getNavigation();
-    const [modalVisible, setModalVisible] = useState(false);
-    const [multipleModalVisible, setMultipleModalVisible] = useState(false);
-    const [dateModalVisible, setDateModalVisible] = useState(false);
-    const [curPeopleSelect, setCurPeopleSelect] = useState<{ [key: string]: any }>(new Array());
-    const [curPositionSelect, setCurPositionSelect] = useState({});
-    const [isEdit, setIsEdit] = useState(false);
-
+    const [modalVisible, setModalVisible] = useState(false); // 单选modal显隐
+    const [multipleModalVisible, setMultipleModalVisible] = useState(false); // 多选modal显隐
+    const [dateModalVisible, setDateModalVisible] = useState(false); // 日期modal显隐
+    const [curDataSelect, setCurDataSelect] = useState<{ [key: string]: any }>({}); // 点击职位后获取的当前选择数据
+    const [selectedStartDate, setSelectedCurStartDate] = useState<Date | null>(null) // 编辑时选的当前开始日期
+    const [selectedEndDate, setSelectedCurEndDate] = useState<Date | null>(null); // 编辑时选的当前结束日期
+    const [isEdit, setIsEdit] = useState(false); // 是否编辑
 
     // 给DB查询做缓存，避免重复调取资源
-    const { peopleList, positionList, dataList } = useMemo(() => ({
-        positionList : realm.objects('ArrangePosition').filtered('positoinType == $0', route.params.arrangeType),
-        peopleList : realm.objects('ArrangePeople'),
-        dataList : realm.objects('ArrangeList'),
+    const { peopleList, positionList } = useMemo(() => ({
+        positionList : realm.objects('ArrangePosition').filtered('positionType == $0', route.params.arrangeType),
+        peopleList : realm.objects('ArrangePeople')
     }), [realm, route.params.arrangeType])
 
+    const [dataList, setDataList] = useState<Array<{ [key: string]: any }>>([])
+      useEffect(() => {
+        // 初始查询
+        let result = realm.objects('ArrangeList')
+        // 添加监听器
+        const updateData = () => {
+            setDataList(Array.from(result))
+        };
+        result.addListener(updateData);
+        // 清理监听器
+        return () => {
+            result.removeListener(updateData);
+        };
+    }, [realm, route.params.arrangeType]);
     // 导航栏加编辑图标
     useLayoutEffect(() => {
         navigation.setOptions({
@@ -66,27 +96,29 @@ export function ArrangeScreen({ route }: ASRouteParams) {
     }, [navigation, isEdit]);
     
     // 给页面显示的datalist和开始结束日期做缓存
-    // 
-    // const [curStartDate, setCurStartDate] = useState(new Date())
-    // const [curEndDate, setCurEndDate] = useState(new Date())
     const { curArrangeDataList, defaultStartDate, defaultEndDate } = useMemo(() => {
         let tempDataList;
-        let startDate: Date = new Date();
-        let endDate: Date = new Date();
+        let startDate: Date | null = null;
+        let endDate: Date | null = null;
+        console.log('进来前先看dataList=====================>', dataList)
         if(dataList.length){
             startDate = new Date()
-            tempDataList = dataList.filtered('positoinType == $0 AND startDate < $1', route.params.arrangeType, startDate).sorted('startDate', true)
-            
-            const lastDate = tempDataList.at(0)
+            console.log('先查最近开始日期，看看查询条件=============>', route.params.arrangeType, startDate)
+            // tempDataList = dataList.filtered('positionType == $0 AND startDate < $1', route.params.arrangeType, startDate).sorted('startDate', true)
+            tempDataList = dataList.filter(data => data.positionType == route.params.arrangeType && compareDesc(new Date(data.startDate), startDate!) > 0).sort((a, b) => compareDesc(new Date(a.startDate), new Date(b.startDate)))
+            console.log('看看查询结果=============>', tempDataList)
+            const lastDate = tempDataList[0]
             startDate = lastDate!['startDate'] as Date
             endDate = lastDate!['endDate'] as Date
-            tempDataList = dataList.filtered('positoinType == $0 AND startDate == $1', route.params.arrangeType, startDate).sorted('positionIndex')
-            tempDataList = Array.from(tempDataList)
+            // tempDataList = dataList.filtered('positionType == $0 AND startDate == $1', route.params.arrangeType, startDate).sorted('positionIndex')
+            tempDataList = dataList.filter(data => data.positionType == route.params.arrangeType && compareDesc(new Date(data.startDate), startDate!) === 0).sort((a, b) => a.positionIndex - b.positionIndex)
+            // tempDataList = Array.from(tempDataList)
         } else {
             console.log('看看试试==============>', Array.from(positionList))
             // setCurArrangeDataList(Array.from(positionList))
             tempDataList = Array.from(positionList)
         }
+        console.log('看看最后赋值给curAD的tempDataList===================>', tempDataList)
         return {
             curArrangeDataList: tempDataList,
             defaultStartDate: startDate,
@@ -94,45 +126,86 @@ export function ArrangeScreen({ route }: ASRouteParams) {
         }
     }, [dataList, positionList, route.params.arrangeType])
 
-    const [selectedStartDate, setSelectedCurStartDate] = useState<Date | null>(null)
-    const [selectedEndDate, setSelectedCurEndDate] = useState<Date | null>(null)
+    function daySelect(date: any) {
+        console.log('看看选择的日期=============>', date)
+        // 日期选中效果，只有第二次选中日期在第一次之后才给设置，否则全重新设置开始
+        // 已经选中开始日期的时候再点日期则取消选中
+        if(selectedStartDate && !selectedEndDate && compareDesc(selectedStartDate, new Date(date.dateString)) > 0){
+            setSelectedCurEndDate(new Date(date.dateString))
+        } else if(selectedStartDate && compareDesc(selectedStartDate, new Date(date.dateString)) === 0){
+            setSelectedCurStartDate(null)
+            setSelectedCurEndDate(null)
+        } else {
+            setSelectedCurStartDate(new Date(date.dateString))
+            setSelectedCurEndDate(null)
+        }
+        getPeroidDate()
+    }
 
-    const [curStartDate, curEndDate] = selectedStartDate ? [selectedStartDate, selectedEndDate] : [defaultStartDate, defaultEndDate]
-    // const curStartDate = selectedStartDate ? selectedStartDate : defaultStartDate
-    // const curEndDate = selectedEndDate ? selectedEndDate : defaultEndDate
+    function getPeroidDate() {
+        debugger
+        let peroidDateObj: { [key: string]: any } = {}
+        if(selectedStartDate && selectedEndDate){
+            const dates = eachDayOfInterval({ start: selectedStartDate!, end: selectedEndDate! })
+            dates.forEach((item, index) => {
+                switch (index) {
+                    case 0:
+                        peroidDateObj[format(item, 'yyyy-MM-dd')] = { startingDay: true, color: 'rgba(250, 240, 216, 1)' }
+                        break;
+                    case dates.length -1:
+                        peroidDateObj[format(item, 'yyyy-MM-dd')] = { endingDay: true, color: 'rgba(250, 240, 216, 1)' }
+                        break;
+                    default:
+                        peroidDateObj[format(item, 'yyyy-MM-dd')] = { color: 'rgba(250, 240, 216, 1)' }
+                        break;
+                }
+            })
+        } else if (!selectedStartDate && selectedEndDate){
+            peroidDateObj[format(selectedEndDate, 'yyyy-MM-dd')] = { color: 'rgba(250, 240, 216, 1)' }
+        } else if (selectedStartDate && !selectedEndDate){
+            peroidDateObj[format(selectedStartDate, 'yyyy-MM-dd')] = { color: 'rgba(250, 240, 216, 1)' }
+        }
+        console.log('看看涂上颜色的是哪些日期--------->', peroidDateObj)
+        return peroidDateObj
+    }
+
+    let [curStartDate, curEndDate] = selectedStartDate ? [selectedStartDate, selectedEndDate] : [defaultStartDate, defaultEndDate]
 
     console.log('康康人员列表捏===========>peopleList', peopleList)
     console.log('康康职位列表捏===========>positionList', positionList)
     console.log('康康数据列表捏===========>dataList', dataList)
 
-    console.log('看看curPeopleSelect==========>', curPeopleSelect)
 
+    // 点击数据条目，展开人员选择。新条目时创建新包以供写入使用，旧条目时加增name值和id值，以供展示和更新使用
     const openPeopleSelect = useCallback((item: any) => {
         console.log('看看选了哪条item========>', item)
         setModalVisible(true)
         if(item.name){
-            setCurPeopleSelect({
+            // positionId: BSON.ObjectId, positionType: number, positionName: string, positionIndex: number, isMultiple: boolean, name: Array<string>, startDate: Date, endDate: Date
+            // 更新数据包，只负责展示，算了干脆全加上反正不占多少算力
+            setCurDataSelect({
+                _id: item._id,
+                positionId: item.positionId,
+                positionType: item.positionType, // 不需要type
+                positionName: item.positionName,
+                positionIndex: item.positionIndex, // 不需要排序
+                isMultiple: item.isMultiple,
                 name: item.name,
-                nameId: item.nameId
+                startDate: item.startDate,
+                endDate: item.endDate
+            })
+        } else {
+            // 新条目，没有_id，之后哪怕是空的也有_id
+            setCurDataSelect({
+                // _id: item._id,
+                positionId: item._id,
+                positionType: item.positionType,
+                positionName: item.positionName,
+                positionIndex: item.positionIndex,
+                isMultiple: item.isMultiple,
+                name: [],
             })
         }
-        
-        // positionId!: Realm.BSON.ObjectId; // 职位ID
-        // positoinType!: number; // 职位所属类别 比如晨钟暮鼓类别
-        // positoinName!: string; // 职位名
-        // positionIndex!: number; // 排序用
-        // isMultiple!: boolean; // 是否多选
-        // name!: Array<string>; // 人员姓名
-        // nameId!: Realm.BSON.ObjectId; // 人员ID
-        // startDate!: Date; // 开始日期
-        // endDate!: Date; // 结束日期
-        setCurPositionSelect({
-            positionId: item._id,
-            positoinType: item.positoinType,
-            positoinName: item.positionName,
-            positionIndex: item.positionIndex,
-            isMultiple: item.isMultiple,
-        })
     }, [])
 
     function openMultiPeopleSelect(name: string){
@@ -145,44 +218,92 @@ export function ArrangeScreen({ route }: ASRouteParams) {
 
 
     const peopleSelect = useCallback((item: any) => {
-        setCurPeopleSelect([{
-            name: item.name,
-            nameId: item.nameId
-        }])
+        console.log('看看选择的人---------------->', item)
+        setCurDataSelect(prev => ({ ...prev, name: [item.name] }))
     }, [])
 
-    // const selectBtnConfirm = useCallback(() => {
-    //     // positionId!: Realm.BSON.ObjectId; // 职位ID
-    //     // positoinType!: number; // 职位所属类别 比如晨钟暮鼓类别
-    //     // positoinName!: string; // 职位名
-    //     // positionIndex!: number; // 排序用
-    //     // isMultiple!: boolean; // 是否多选
-    //     // name!: Array<string>; // 人员姓名
-    //     // nameId!: Realm.BSON.ObjectId; // 人员ID
-    //     // startDate!: Date; // 开始日期
-    //     // endDate!: Date; // 结束日期
-        
-    //     // realm.write(() => {
-    //     //     realm.create(ArrangeList, ArrangeList.generate())
-    //     // });
-    //     // const data = Object.assign(curPeopleSelect, curPositionSelect, { curStartDate, curEndDate })
-    //     console.log('康康要写入的curPeopleSelect===================>', curPeopleSelect)
-    //     console.log('康康要写入的curPositionSelect===================>', curPositionSelect)
-    //     console.log('康康要写入的{ curStartDate, curEndDate }===================>', { curStartDate, curEndDate })
-    //     setModalVisible(false)
-    // }, [curPositionSelect, curPeopleSelect, curStartDate, curEndDate])
-
     function selectBtnConfirm() {
-        console.log('康康要写入的curPeopleSelect===================>', curPeopleSelect)
-        console.log('康康要写入的curPositionSelect===================>', curPositionSelect)
-        console.log('康康要写入的{ curStartDate, curEndDate }===================>', { curStartDate, curEndDate })
+        console.log('康康要写入的curData===============>', { ...curDataSelect, startDate: curStartDate, endDate: curEndDate  })
+        // 如果没有，等于是除了这条以外给这个日期下的所有职位创建一个空数据，点击剩余的时候走的就不是创建而是修改
+        try {
+            realm.write(() => {
+                if(!dataList.length){
+                    positionList.forEach((item: any) => {
+                        if(item.positionName == curDataSelect.positionName){
+                            console.log('看看都在写啥=======>', ArrangeList.generate(
+                                curDataSelect.positionId,
+                                curDataSelect.positionType,
+                                curDataSelect.positionName,
+                                curDataSelect.positionIndex,
+                                curDataSelect.isMultiple,
+                                curDataSelect.name,
+                                curStartDate!,
+                                curEndDate!
+                            ));
+                            realm.create(ArrangeList, ArrangeList.generate(
+                                curDataSelect.positionId,
+                                curDataSelect.positionType,
+                                curDataSelect.positionName,
+                                curDataSelect.positionIndex,
+                                curDataSelect.isMultiple,
+                                curDataSelect.name,
+                                curStartDate!,
+                                curEndDate!
+                            ))
+                        } else {
+                            console.log('看看都在写啥=======>', ArrangeList.generate(
+                                item._id,
+                                item.positionType,
+                                item.positionName,
+                                item.positionIndex,
+                                item.isMultiple,
+                                [],
+                                curStartDate!,
+                                curEndDate!
+                            ));
+                            realm.create(ArrangeList, ArrangeList.generate(
+                                item._id,
+                                item.positionType,
+                                item.positionName,
+                                item.positionIndex,
+                                item.isMultiple,
+                                [],
+                                curStartDate!,
+                                curEndDate!
+                            ))
+                        }
+                    })
+                } else {
+                    let updateRes: any = realm.objects('ArrangeList').filtered('_id == $0', curDataSelect._id)[0]
+                    const {_id, ...tempData} = curDataSelect
+                    console.log('看看你要更新啥===========>', { ...tempData })
+                    updateRes = { ...tempData }
+                }
+            });
+        } catch (error) {
+            console.log('出错了捏============>', error)
+        }
         setModalVisible(false)
+        setMultipleModalVisible(false)
     }
     
     const selectBtnCancel = useCallback(() => {
-        setCurPeopleSelect([{}])
+        setCurDataSelect(prev => ({ ...curDataSelect, name: [] }))
         setModalVisible(false)
+        setMultipleModalVisible(false)
     }, [])
+
+    function dateBtnConfirm() {
+        console.log('康康要设定的{ curStartDate, curEndDate }===================>', { curStartDate, curEndDate })
+        setDateModalVisible(false)
+    }
+    
+    const dateBtnCancel = useCallback(() => {
+        setSelectedCurStartDate(null)
+        setSelectedCurEndDate(null)
+        setDateModalVisible(false)
+    }, [])
+
 
     function multiPeopleSelect(item: any) {
         console.log('看看选了啥=========>item', item)
@@ -206,10 +327,10 @@ export function ArrangeScreen({ route }: ASRouteParams) {
                             {
                                 peopleList.map((item: any, index: number) => (
                                     <Pressable
-                                        style={ ({ pressed }) => [modalStyles.selectItem, styles.samItemEdit, pressed && styles.samItemActive, curPeopleSelect && curPeopleSelect.length && curPeopleSelect.findIndex((sp: { [key: string]: any }) => sp.name == item.name) != -1 ? { backgroundColor: 'rgb(136, 136, 136)' } : {}]}
+                                        style={ ({ pressed }) => [modalStyles.selectItem, styles.samItemEdit, pressed && styles.samItemActive, curDataSelect.name && curDataSelect.name.length && curDataSelect.name.findIndex((sp: string) => sp == item.name) != -1 ? { backgroundColor: 'rgb(136, 136, 136)' } : {}]}
                                         key={ index }
                                         onPress={ _ => peopleSelect(item) }
-                                        disabled={ curPeopleSelect && curPeopleSelect.length && curPeopleSelect.findIndex((sp: { [key: string]: any })=> sp.name == item.name) != -1 ? true : false }
+                                        disabled={ curDataSelect.name && curDataSelect.name.length && curDataSelect.name.findIndex((sp: string) => sp == item.name) != -1 ? true : false }
                                     >
                                         <Text style={ modalStyles.selectItemText }>{ item.name }</Text>
                                     </Pressable>
@@ -265,12 +386,18 @@ export function ArrangeScreen({ route }: ASRouteParams) {
                             }
 
                         </View>
-                        <View>
-                            <Pressable>
-                                <Text>确认</Text>
+                        <View style={ modalStyles.bottomView }>
+                            <Pressable 
+                                style={ ({ pressed }) => [modalStyles.bottomBtn, styles.samItemEdit, styles.bgYellow, pressed && styles.samItemActive] }
+                                onPress={ selectBtnConfirm }
+                            >
+                                <Text style={ modalStyles.btnText }>确认</Text>
                             </Pressable>
-                            <Pressable>
-                                <Text>关闭</Text>
+                            <Pressable 
+                                style={ ({ pressed }) => [modalStyles.bottomBtn, styles.samItemEdit, styles.bgWhite, pressed && styles.samItemActive ] }
+                                onPress={ selectBtnCancel }
+                            >
+                                <Text style={ modalStyles.btnText }>关闭</Text>
                             </Pressable>
                         </View>
                     </View>
@@ -281,7 +408,7 @@ export function ArrangeScreen({ route }: ASRouteParams) {
                 transparent={true}
                 visible={dateModalVisible}
                 onRequestClose={() => {
-                    Alert.alert("Modal has been closed.");
+                    Alert.alert("日历modal关闭");
                     setDateModalVisible(!dateModalVisible);
                 }}
             >
@@ -291,7 +418,27 @@ export function ArrangeScreen({ route }: ASRouteParams) {
                 >
                     {/* <View style={ modalStyles.modalView }></View> */}
                     <View style={ modalStyles.dateModalView }>
-                        <View style={ modalStyles.dateSelectView }></View>
+                        <View style={ modalStyles.dateSelectView }>
+                            <Calendar
+                                markingType={'period'}
+                                markedDates={ getPeroidDate() }
+                                onDayPress={ daySelect }
+                            ></Calendar>
+                        </View>
+                        <View style={ modalStyles.bottomView }>
+                            <Pressable 
+                                style={ ({ pressed }) => [modalStyles.bottomBtn, styles.samItemEdit, styles.bgYellow, pressed && styles.samItemActive] }
+                                onPress={ dateBtnConfirm }
+                            >
+                                <Text style={ modalStyles.btnText }>确认</Text>
+                            </Pressable>
+                            <Pressable 
+                                style={ ({ pressed }) => [modalStyles.bottomBtn, styles.samItemEdit, styles.bgWhite, pressed && styles.samItemActive ] }
+                                onPress={ dateBtnCancel }
+                            >
+                                <Text style={ modalStyles.btnText }>关闭</Text>
+                            </Pressable>
+                        </View>
                     </View>
                 </ScrollView>
             </Modal>
@@ -492,13 +639,13 @@ const modalStyles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         flex: 1,
-        backgroundColor: 'rgba(250, 24, 24, 0.6)'
+        backgroundColor: 'rgba(0, 0, 0, 0.6)'
     },
     dateSelectView: {
-        flex: 1,
+        // flex: 1,
         margin: 40,
         width: '90%',
-        backgroundColor: 'rgba(0, 0, 0, 0.9)'
+        backgroundColor: 'rgba(0, 0, 0, 1)'
     },
     
     selectItem: {
@@ -538,17 +685,6 @@ const modalStyles = StyleSheet.create({
         borderStyle: 'solid',
         borderWidth: 1,
         borderColor: 'rgba(158, 155, 149, 1)'
-    },
-    cancelBtn: {
-        flex: 1,
-        margin: 50,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderRadius: 10,
-        borderStyle: 'solid',
-        borderWidth: 1,
-        borderColor: 'rgba(216, 213, 206, 1)',
-        backgroundColor: 'rgba(255, 255, 255, 1)'
     },
     btnText: {
         // paddingRight: 50,

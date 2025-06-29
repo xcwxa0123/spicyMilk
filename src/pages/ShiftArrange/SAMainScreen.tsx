@@ -34,22 +34,22 @@ export function SAMainScreen() {
     const arrangeItemList = [
         {
             itemName: '早晚课排班',
-            positoinType: 0,
+            positionType: 0,
             backgroundColor: 'rgba(248, 245, 236, 1)'
         },
         {
             itemName: '斋堂排班',
-            positoinType: 1,
+            positionType: 1,
             backgroundColor: 'rgba(246, 246, 238, 1)'
         },
         {
             itemName: '钟鼓排班',
-            positoinType: 2,
+            positionType: 2,
             backgroundColor: 'rgba(255, 248, 240, 1)'
         },
         {
             itemName: '后台管理',
-            positoinType: 999,
+            positionType: 999,
             backgroundColor: 'rgba(239, 239, 239, 1)'
         }
     ]
@@ -69,11 +69,11 @@ export function SAMainScreen() {
                                 style={ ({ pressed }) => [styles.samItem, { backgroundColor: item.backgroundColor }, pressed && styles.samItemActive] } 
                                 key={ index } 
                                 onPress={() => {
-                                    switch (item.positoinType) {
+                                    switch (item.positionType) {
                                         case 999:
                                             return navigation.navigate(ROUTE.BACKSTAGESCREEN)
                                         default:
-                                            return navigation.navigate(ROUTE.ARRANGESCREEN, { arrangeType: item.positoinType, title: item.itemName })
+                                            return navigation.navigate(ROUTE.ARRANGESCREEN, { arrangeType: item.positionType, title: item.itemName })
                                     }
                                     
                                 }}
