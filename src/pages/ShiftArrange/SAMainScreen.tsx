@@ -38,12 +38,12 @@ export function SAMainScreen() {
             backgroundColor: 'rgba(248, 245, 236, 1)'
         },
         {
-            itemName: '斋堂排班',
+            itemName: '钟鼓排班',
             positionType: 1,
             backgroundColor: 'rgba(246, 246, 238, 1)'
         },
         {
-            itemName: '钟鼓排班',
+            itemName: '斋堂排班',
             positionType: 2,
             backgroundColor: 'rgba(255, 248, 240, 1)'
         },
