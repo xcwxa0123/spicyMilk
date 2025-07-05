@@ -53,16 +53,15 @@ export function ArrangeScreen({ route }: ASRouteParams) {
     const [curDataSelect, setCurDataSelect] = useState<{ [key: string]: any }>({}); // 点击职位后获取的当前选择数据
     const [selectedStartDate, setSelectedCurStartDate] = useState<Date | null>(null) // 编辑时选的当前开始日期
     const [selectedEndDate, setSelectedCurEndDate] = useState<Date | null>(null); // 编辑时选的当前结束日期
-    const [periodDateList, setPeriodDateList] = useState<Array<{ [key: string]: Date }> | null>(null); // 编辑时选的当前结束日期
+    const [periodDateList, setPeriodDateList] = useState<Array<{ [key: string]: Date }> | null>(null); // 日期逻辑预存数组
     const [isEdit, setIsEdit] = useState(false); // 是否编辑
-
     // 给DB查询做缓存，避免重复调取资源
     const { peopleList, positionList } = useMemo(() => ({
         positionList : realm.objects('ArrangePosition').filtered('positionType == $0', route.params.arrangeType),
         peopleList : realm.objects('ArrangePeople')
     }), [realm, route.params.arrangeType])
-
-    // 全查
+    debugger
+    // 当前arrangeType的data全查并放进dataList
     const [dataList, setDataList] = useState<Array<{ [key: string]: any }>>([])
     useEffect(() => {
         // 初始查询
@@ -109,6 +108,9 @@ export function ArrangeScreen({ route }: ASRouteParams) {
             // tempDataList = dataList.filtered('positionType == $0 AND startDate < $1', route.params.arrangeType, startDate).sorted('startDate', true)
             tempDataList = dataList.filter(data => data.positionType == route.params.arrangeType && compareDesc(new Date(data.startDate), startDate!) > 0).sort((a, b) => compareDesc(new Date(a.startDate), new Date(b.startDate)))
             console.log('看看查询结果=============>', tempDataList)
+            if(!tempDataList.length){
+                tempDataList = dataList.filter(data => data.positionType == route.params.arrangeType && compareDesc(new Date(data.startDate), startDate!) < 0).sort((a, b) => compareDesc(new Date(a.startDate), new Date(b.startDate)))
+            }
             const lastDate = tempDataList[0]
             startDate = lastDate!['startDate'] as Date
             endDate = lastDate!['endDate'] as Date
@@ -126,6 +128,7 @@ export function ArrangeScreen({ route }: ASRouteParams) {
         return { curArrangeDataList: tempDataList, defaultStartDate: startDate, defaultEndDate: endDate }
     }, [dataList, positionList, route.params.arrangeType])
 
+    // 日期onpress
     function daySelect(date: any) {
         console.log('看看选择的日期=============>', date)
         // 日期选中效果，只有第二次选中日期在第一次之后才给设置，否则全重新设置开始
@@ -180,7 +183,11 @@ export function ArrangeScreen({ route }: ASRouteParams) {
     // 点击数据条目，展开人员选择。新条目时创建新包以供写入使用，旧条目时加增name值和id值，以供展示和更新使用
     const openPeopleSelect = useCallback((item: any) => {
         console.log('看看选了哪条item========>', item)
-        setModalVisible(true)
+        if(item.isMultiple){
+            setMultipleModalVisible(true)
+        } else {
+            setModalVisible(true)
+        }
         if(item.name){
             // positionId: BSON.ObjectId, positionType: number, positionName: string, positionIndex: number, isMultiple: boolean, name: Array<string>, startDate: Date, endDate: Date
             // 更新数据包，只负责展示，算了干脆全加上反正不占多少算力
@@ -211,10 +218,7 @@ export function ArrangeScreen({ route }: ASRouteParams) {
         }
     }, [])
 
-    function openMultiPeopleSelect(name: string){
-
-    }
-
+    // 日期文本onpress
     function openDateSelect() {
         setDateModalVisible(true)
     }
@@ -222,16 +226,44 @@ export function ArrangeScreen({ route }: ASRouteParams) {
     // -二期TODO 增加已选中角色的List获取
     const getPeopleDisabled = useCallback((item: any) => {
         return (curDataSelect.name && curDataSelect.name.length && curDataSelect.name.findIndex((sp: string) => sp == item.name) != -1) ? true : false
-    }, [dataList])
+    }, [dataList, curDataSelect.name])
 
+    const getMultiDisable = useCallback((item: any) => {
+        return (curDataSelect.name && curDataSelect.name.length && curDataSelect.name.findIndex((sp: string) => sp == item.name) != -1) ? true : false
+    }, [dataList, curDataSelect.name])
+
+    // 人员选择modal人员条目onpress
+    // 因为每一次都是替换，所以不用管前一次是啥，这个可以写成缓存
     const peopleSelect = useCallback((item: any) => {
         console.log('看看选择的人---------------->', item)
         setCurDataSelect(prev => ({ ...prev, name: [item.name] }))
     }, [])
+    
+    // 多选人员选择界面的人员条目onpress
+    // 每一次动会根据上一次的逻辑，所以需要以来curDataSelect
+    const multiPeopleSelect = useCallback((item: any) => {
+        console.log('看看选择的人---------------->', item)
+        setCurDataSelect(prev => {
+            // 如果之前选择的人里面不包含当前选择，则name中追加当前选择的name，如果有，则剔除，做到重复点击取消，同时记得把disable给取消掉
+            let nameIndex = prev.name.findIndex((name: string) => name == item.name)
+            if(nameIndex == -1){
+                return ({ ...prev, name: prev.name.concat(item.name) })
+            } else {
+                prev.name.splice(nameIndex, 1)
+                return ({ ...prev })
+            }
+        })
+        console.log('看看set后的data---------------->', curDataSelect)
+    }, [curDataSelect])
 
+    // 人员选择界面确认按钮
     function selectBtnConfirm() {
         console.log('康康要写入的curData===============>', { ...curDataSelect, startDate: selectedStartDate, endDate: selectedEndDate  })
         // 如果没有，等于是除了这条以外给这个日期下的所有职位创建一个空数据，点击剩余的时候走的就不是创建而是修改
+        if(!selectedStartDate || !selectedEndDate){
+            Alert.alert('先选日期捏')
+            return
+        }
         try {
             realm.write(() => {
                 if(!dataList.length){
@@ -275,7 +307,7 @@ export function ArrangeScreen({ route }: ASRouteParams) {
                                 item._id,
                                 item.positionType,
                                 item.positionName,
-                                item.positionIndex, // -TODO 图片BUG
+                                item.positionIndex,
                                 item.isMultiple,
                                 item.imgIndex,
                                 [],
@@ -298,6 +330,7 @@ export function ArrangeScreen({ route }: ASRouteParams) {
         setMultipleModalVisible(false)
     }
     
+    // 人员选择modal取消按钮
     const selectBtnCancel = useCallback(() => {
         // curdataselect不控制显示，只是预存当前数据，所以无论是否进来时有数据都统一清空名字，只有确定时才写入
         setCurDataSelect(prev => ({ ...prev, name: [] }))
@@ -305,6 +338,7 @@ export function ArrangeScreen({ route }: ASRouteParams) {
         setMultipleModalVisible(false)
     }, [])
 
+    // 日期modal确认按钮
     function dateBtnConfirm() {
         // -二期TODO查询对应时间列表数据，没选那就默认初始化逻辑setPeriodDateList
         
@@ -336,16 +370,18 @@ export function ArrangeScreen({ route }: ASRouteParams) {
         setDateModalVisible(false)
     }
     
+    // 日期modal取消按钮
     const dateBtnCancel = useCallback(() => {
         setSelectedCurStartDate(defaultStartDate)
         setSelectedCurEndDate(defaultEndDate)
         setDateModalVisible(false)
     }, [defaultStartDate, defaultEndDate])
 
-
-    function multiPeopleSelect(item: any) {
-        console.log('看看选了啥=========>item', item)
-    } 
+    const isSubArr = useCallback((arrA: Array<number | string>, arrB: Array<number | string>) => {
+        let setB = new Set(arrB)
+        arrA.every(item => setB.has(item))
+        
+    }, [])
 
     return (
         <ImageBackground source={ getIconImage('backgroundImage') } resizeMode='cover' style={ styles.ibg }>
@@ -365,7 +401,7 @@ export function ArrangeScreen({ route }: ASRouteParams) {
                             {
                                 peopleList.map((item: any, index: number) => (
                                     <Pressable
-                                        style={ ({ pressed }) => [modalStyles.selectItem, styles.samItemEdit, pressed && styles.samItemActive, curDataSelect.name && curDataSelect.name.length && curDataSelect.name.findIndex((sp: string) => sp == item.name) != -1 ? { backgroundColor: 'rgb(136, 136, 136)' } : {}]}
+                                        style={ ({ pressed }) => [modalStyles.selectItem, styles.samItemEdit, pressed && styles.samItemActive, getPeopleDisabled(item) ? { backgroundColor: 'rgb(136, 136, 136)' } : {}]}
                                         key={ index }
                                         onPress={ _ => peopleSelect(item) }
                                         disabled={ getPeopleDisabled(item) }
@@ -398,7 +434,6 @@ export function ArrangeScreen({ route }: ASRouteParams) {
                 transparent={true}
                 visible={multipleModalVisible}
                 onRequestClose={() => {
-                    Alert.alert("多选框关闭");
                     setMultipleModalVisible(!multipleModalVisible);
                 }}
             >
@@ -413,11 +448,12 @@ export function ArrangeScreen({ route }: ASRouteParams) {
                                 peopleList.map((item: any, index: number) => (
                                     // -TODO 已选的置灰且不可选
                                     <Pressable
-                                        style={ ({ pressed }) => [modalStyles.selectItem, styles.samItemEdit, pressed && styles.samItemActive] }
+                                        style={ ({ pressed }) => [modalStyles.selectItem, styles.samItemEdit, pressed && styles.samItemActive, getMultiDisable(item) ? { backgroundColor: 'rgb(136, 136, 136)' } : {}] }
                                         key={ index }
                                         onPress={ _ => multiPeopleSelect(item) }
+                                        // disabled={ getMultiDisable(item) }
                                     >
-                                        <Text style={ modalStyles.selectItemText }>{ item.name }多选</Text>
+                                        <Text style={ modalStyles.selectItemText }>{ item.name }</Text>
                                         {/* <Image source={getIconImage(item.imgIndex)} resizeMode="contain" style={ styles.samItemIcon }></Image> */}
                                     </Pressable>
                                 ))
@@ -508,7 +544,8 @@ export function ArrangeScreen({ route }: ASRouteParams) {
                             (<Pressable
                                 style={ ({ pressed }) => [styles.samItem, isEdit && styles.samItemEdit, { backgroundColor: item.backgroundColor }, pressed && styles.samItemActive] }
                                 key={ index }
-                                onPress={() => item.isMultiple ? openMultiPeopleSelect(item) : openPeopleSelect(item)}
+                                // onPress={() => item.isMultiple ? openMultiPeopleSelect(item) : openPeopleSelect(item)}
+                                onPress={() => openPeopleSelect(item)}
                                 disabled={ !isEdit }
                             >
                                 <Text style={ styles.samItemText }>| { index + 1 } { item.positionName }：      { item.name && item.name.join('、') }</Text>
@@ -605,17 +642,20 @@ const styles = StyleSheet.create({
         left: 2
     },
     samItemIcon: {
-        aspectRatio: 1,
-        width: '20%',
+        flex: 1,
+        // aspectRatio: 1,
+        // width: '20%',
         marginTop: 15,
         marginBottom: 15,
-        marginRight: 20
+        // marginRight: 20
         
     },
     samItemText: {
+        flex: 1,
         paddingRight: 50,
         textAlignVertical: 'center',
         height: 80,
+        overflow: 'scroll',
         marginHorizontal: 30,
         fontFamily: 'SourceHanSerifCN-SemiBold-7',
         fontSize: 30,
