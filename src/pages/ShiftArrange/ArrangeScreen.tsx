@@ -73,7 +73,8 @@ export function ArrangeScreen({ route }: ASRouteParams) {
             setDataList(Array.from(result))
             // 根据startDate去重，并获取所有对应的endDate
             const resMap = new Map()
-            for (const item of result) {
+            const sortedData = result.sorted('startDate', true)
+            for (const item of sortedData) {
                 const dateKey = (item['startDate'] as Date).toISOString()
                 if(!resMap.has(dateKey)){
                     resMap.set(dateKey, { startDate: item['startDate'], endDate: item['endDate'] })
@@ -145,6 +146,9 @@ export function ArrangeScreen({ route }: ASRouteParams) {
 
 
     // 日期onpress
+    // 点击未存 在日期点击方法中判断当前点击是否在历史peroid之内，如果在，不追加peroid样式，
+    // 按查询处理，如果不在且start当前为Null，设置，如果不在且start有值且end为null，已经过了是否在peroid逻辑，只需要判断start是否小于最小，当前点击是否大于最大，是报错清除selected，否则走新建
+    // 日期modal确认按钮 如果开始日期结束日期之间有数据，那么不行，如果开始日期和结束
     const daySelect = useCallback((date: any) => {
         console.log('看看选择的日期=============>', date)
         // 日期选中效果，只有第二次选中日期在第一次之后才给设置，否则全重新设置开始
@@ -162,24 +166,30 @@ export function ArrangeScreen({ route }: ASRouteParams) {
     }, [selectedStartDate, selectedEndDate]) 
 
 
+    const reformDateList = useCallback((startDate: Date, endDate: Date) => {
+        let peroidDateObj: { [key: string]: any } = {}
+        const dates = eachDayOfInterval({ start: startDate, end: endDate })
+        dates.forEach((item, index) => {
+            switch (index) {
+                case 0:
+                    peroidDateObj[format(item, 'yyyy-MM-dd')] = { startingDay: true, color: 'rgba(250, 240, 216, 1)' }
+                    break;
+                case dates.length -1:
+                    peroidDateObj[format(item, 'yyyy-MM-dd')] = { endingDay: true, color: 'rgba(250, 240, 216, 1)' }
+                    break;
+                default:
+                    peroidDateObj[format(item, 'yyyy-MM-dd')] = { color: 'rgba(250, 240, 216, 1)' }
+                    break;
+            }
+        })
+        return peroidDateObj
+    }, [])
+
     // 拆分逻辑，selected日期只负责日历渲染，不负责日期文本渲染和selectedData填充
     const getSelectedPeroidDate = useCallback(() => {
         let peroidDateObj: { [key: string]: any } = {}
         if(selectedStartDate && selectedEndDate){
-            const dates = eachDayOfInterval({ start: selectedStartDate!, end: selectedEndDate! })
-            dates.forEach((item, index) => {
-                switch (index) {
-                    case 0:
-                        peroidDateObj[format(item, 'yyyy-MM-dd')] = { startingDay: true, color: 'rgba(250, 240, 216, 1)' }
-                        break;
-                    case dates.length -1:
-                        peroidDateObj[format(item, 'yyyy-MM-dd')] = { endingDay: true, color: 'rgba(250, 240, 216, 1)' }
-                        break;
-                    default:
-                        peroidDateObj[format(item, 'yyyy-MM-dd')] = { color: 'rgba(250, 240, 216, 1)' }
-                        break;
-                }
-            })
+            peroidDateObj = reformDateList(selectedStartDate, selectedEndDate)
         } else if (!selectedStartDate && selectedEndDate){
             peroidDateObj[format(selectedEndDate, 'yyyy-MM-dd')] = { color: 'rgba(250, 240, 216, 1)' }
         } else if (selectedStartDate && !selectedEndDate){
@@ -191,26 +201,9 @@ export function ArrangeScreen({ route }: ASRouteParams) {
     
     const getDataListPeroidDate = useCallback(() => {
         let peroidDateObj: { [key: string]: any } = {}
-        // if(selectedStartDate && selectedEndDate){
-        //     const dates = eachDayOfInterval({ start: selectedStartDate!, end: selectedEndDate! })
-        //     dates.forEach((item, index) => {
-        //         switch (index) {
-        //             case 0:
-        //                 peroidDateObj[format(item, 'yyyy-MM-dd')] = { startingDay: true, color: 'rgba(250, 240, 216, 1)' }
-        //                 break;
-        //             case dates.length -1:
-        //                 peroidDateObj[format(item, 'yyyy-MM-dd')] = { endingDay: true, color: 'rgba(250, 240, 216, 1)' }
-        //                 break;
-        //             default:
-        //                 peroidDateObj[format(item, 'yyyy-MM-dd')] = { color: 'rgba(250, 240, 216, 1)' }
-        //                 break;
-        //         }
-        //     })
-        // } else if (!selectedStartDate && selectedEndDate){
-        //     peroidDateObj[format(selectedEndDate, 'yyyy-MM-dd')] = { color: 'rgba(250, 240, 216, 1)' }
-        // } else if (selectedStartDate && !selectedEndDate){
-        //     peroidDateObj[format(selectedStartDate, 'yyyy-MM-dd')] = { color: 'rgba(250, 240, 216, 1)' }
-        // }
+        periodDateList?.forEach(item => {
+            peroidDateObj = { ...peroidDateObj, ...reformDateList(item.startDate, item.endDate)}
+        })
         console.log('看看涂上颜色的是哪些日期--------->', peroidDateObj)
         return peroidDateObj
     }, [dataList])
@@ -556,7 +549,7 @@ export function ArrangeScreen({ route }: ASRouteParams) {
                     contentContainerStyle={styles.scrollContainer}
                     showsVerticalScrollIndicator={true} // 隐藏滚动条（可选）
                         // 所需逻辑：
-                        // 一开始进来默认设置最近的数据，编辑时日期表上五颜六色的历史记录，点击已存的记录直接默认是查询并关闭弹窗关闭编辑模式展示该记录的数据，(并且设置该记录为对比记录?)\
+                        // 一开始进来默认设置最近的数据，编辑时日期表上五颜六色的历史记录，点击已存的记录直接默认是查询并关闭弹窗关闭编辑模式展示该记录的数据，(并且设置该记录为对比记录?)
                         // 点击未存 在日期点击方法中判断当前点击是否在历史peroid之内，如果在，不追加peroid样式，按查询处理，如果不在且start当前为Null，设置，如果不在且start有值且end为null，已经过了是否在peroid逻辑，只需要判断start是否小于最小，当前点击是否大于最大，是报错清除selected，否则走新建
                         // 日期modal确认按钮 如果开始日期结束日期之间有数据，那么不行，如果开始日期和结束
                 >
