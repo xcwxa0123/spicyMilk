@@ -54,21 +54,32 @@ export function ArrangeScreen({ route }: ASRouteParams) {
     const [selectedStartDate, setSelectedCurStartDate] = useState<Date | null>(null) // 编辑时选的当前开始日期
     const [selectedEndDate, setSelectedCurEndDate] = useState<Date | null>(null); // 编辑时选的当前结束日期
     const [periodDateList, setPeriodDateList] = useState<Array<{ [key: string]: Date }> | null>(null); // 日期逻辑预存数组
+    const [selectedDateMemo, setSelectedDateMemo] = useState<{ [key: string]: Date | null }>({ 'memoStart': null, 'memoEnd': null }); // 当前选择缓存
     const [isEdit, setIsEdit] = useState(false); // 是否编辑
-    // 给DB查询做缓存，避免重复调取资源
+    // 当前arrangeType的data全查并放进dataList
+    const [dataList, setDataList] = useState<Array<{ [key: string]: any }>>([])
+    console.log('看看刷新后的data---------------->', curDataSelect)
+    // 给职位列表和人员列表查询做缓存，避免重复调取资源
     const { peopleList, positionList } = useMemo(() => ({
         positionList : realm.objects('ArrangePosition').filtered('positionType == $0', route.params.arrangeType),
         peopleList : realm.objects('ArrangePeople')
     }), [realm, route.params.arrangeType])
-    debugger
-    // 当前arrangeType的data全查并放进dataList
-    const [dataList, setDataList] = useState<Array<{ [key: string]: any }>>([])
+    // 查全数据做缓存，并设置监听器，查全数据意味着数据发生变更，因此也需要重新设置一下日期集
     useEffect(() => {
         // 初始查询
         let result = realm.objects('ArrangeList').filtered('positionType == $0', route.params.arrangeType)
         // 添加监听器
         const updateData = () => {
             setDataList(Array.from(result))
+            // 根据startDate去重，并获取所有对应的endDate
+            const resMap = new Map()
+            for (const item of result) {
+                const dateKey = (item['startDate'] as Date).toISOString()
+                if(!resMap.has(dateKey)){
+                    resMap.set(dateKey, { startDate: item['startDate'], endDate: item['endDate'] })
+                }
+            }
+            setPeriodDateList(Array.from(resMap.values()))
         };
         result.addListener(updateData);
         // 清理监听器
@@ -76,6 +87,7 @@ export function ArrangeScreen({ route }: ASRouteParams) {
             result.removeListener(updateData);
         };
     }, [realm, route.params.arrangeType]);
+    console.log('看看刷新后的periodDateList---------------->', periodDateList)
     // 导航栏加编辑图标
     useLayoutEffect(() => {
         navigation.setOptions({
@@ -122,14 +134,18 @@ export function ArrangeScreen({ route }: ASRouteParams) {
             // setCurArrangeDataList(Array.from(positionList))
             tempDataList = Array.from(positionList)
         }
-        setSelectedCurStartDate(startDate)
-        setSelectedCurEndDate(endDate)
+        // 逻辑修改，渲染历史数据的日历全走getDataListPeroid，这里只渲染文本，同时setCurSelectedData
+        // setSelectedCurStartDate(startDate)
+        // setSelectedCurEndDate(endDate)
+        setCurDataSelect(prev => ({ ...prev, startDate, endDate }))
         console.log('看看最后赋值给curAD的tempDataList===================>', tempDataList)
         return { curArrangeDataList: tempDataList, defaultStartDate: startDate, defaultEndDate: endDate }
     }, [dataList, positionList, route.params.arrangeType])
 
+
+
     // 日期onpress
-    function daySelect(date: any) {
+    const daySelect = useCallback((date: any) => {
         console.log('看看选择的日期=============>', date)
         // 日期选中效果，只有第二次选中日期在第一次之后才给设置，否则全重新设置开始
         // 已经选中开始日期的时候再点日期则取消选中
@@ -143,11 +159,11 @@ export function ArrangeScreen({ route }: ASRouteParams) {
             setSelectedCurEndDate(null)
         }
         // getPeroidDate()
-    }
+    }, [selectedStartDate, selectedEndDate]) 
 
-    function getPeroidDate() {
-        // debugger
-        // 取所有数据库中的开始日期去重，留下的数据查对应的结束日期，做peroid且disabled
+
+    // 拆分逻辑，selected日期只负责日历渲染，不负责日期文本渲染和selectedData填充
+    const getSelectedPeroidDate = useCallback(() => {
         let peroidDateObj: { [key: string]: any } = {}
         if(selectedStartDate && selectedEndDate){
             const dates = eachDayOfInterval({ start: selectedStartDate!, end: selectedEndDate! })
@@ -171,7 +187,45 @@ export function ArrangeScreen({ route }: ASRouteParams) {
         }
         console.log('看看涂上颜色的是哪些日期--------->', peroidDateObj)
         return peroidDateObj
-    }
+    }, [selectedStartDate, selectedEndDate])
+    
+    const getDataListPeroidDate = useCallback(() => {
+        let peroidDateObj: { [key: string]: any } = {}
+        // if(selectedStartDate && selectedEndDate){
+        //     const dates = eachDayOfInterval({ start: selectedStartDate!, end: selectedEndDate! })
+        //     dates.forEach((item, index) => {
+        //         switch (index) {
+        //             case 0:
+        //                 peroidDateObj[format(item, 'yyyy-MM-dd')] = { startingDay: true, color: 'rgba(250, 240, 216, 1)' }
+        //                 break;
+        //             case dates.length -1:
+        //                 peroidDateObj[format(item, 'yyyy-MM-dd')] = { endingDay: true, color: 'rgba(250, 240, 216, 1)' }
+        //                 break;
+        //             default:
+        //                 peroidDateObj[format(item, 'yyyy-MM-dd')] = { color: 'rgba(250, 240, 216, 1)' }
+        //                 break;
+        //         }
+        //     })
+        // } else if (!selectedStartDate && selectedEndDate){
+        //     peroidDateObj[format(selectedEndDate, 'yyyy-MM-dd')] = { color: 'rgba(250, 240, 216, 1)' }
+        // } else if (selectedStartDate && !selectedEndDate){
+        //     peroidDateObj[format(selectedStartDate, 'yyyy-MM-dd')] = { color: 'rgba(250, 240, 216, 1)' }
+        // }
+        console.log('看看涂上颜色的是哪些日期--------->', peroidDateObj)
+        return peroidDateObj
+    }, [dataList])
+
+    
+    // 取所有数据库中的开始日期去重，留下的数据查对应的结束日期，做peroid且disabled
+    const getPeroidDate = useCallback(() => {
+        // debugger
+        // 点击时触发的渲染
+        let spd = getSelectedPeroidDate()
+        // 初始化时触发的渲染
+        let dpd = getDataListPeroidDate()
+        return {...spd, ...dpd}
+    }, [getSelectedPeroidDate, getDataListPeroidDate])
+
 
     // let [curStartDate, curEndDate] = selectedStartDate ? [selectedStartDate, selectedEndDate] : [defaultStartDate, defaultEndDate]
 
@@ -205,7 +259,8 @@ export function ArrangeScreen({ route }: ASRouteParams) {
             })
         } else {
             // 新条目，没有_id，之后哪怕是空的也有_id
-            setCurDataSelect({
+            setCurDataSelect(prev => ({
+                ...prev, // 包含日期
                 // _id: item._id,
                 positionId: item._id,
                 positionType: item.positionType,
@@ -214,12 +269,14 @@ export function ArrangeScreen({ route }: ASRouteParams) {
                 isMultiple: item.isMultiple,
                 imgIndex: item.imgIndex,
                 name: [],
-            })
+            }))
         }
     }, [])
 
-    // 日期文本onpress
+    // 日期文本onpress 打开的时候设置 先用memo设置过一遍
     function openDateSelect() {
+        setSelectedCurStartDate(selectedDateMemo.memoStart)
+        setSelectedCurEndDate(selectedDateMemo.memoEnd)
         setDateModalVisible(true)
     }
 
@@ -249,12 +306,19 @@ export function ArrangeScreen({ route }: ASRouteParams) {
             if(nameIndex == -1){
                 return ({ ...prev, name: prev.name.concat(item.name) })
             } else {
-                prev.name.splice(nameIndex, 1)
-                return ({ ...prev })
+                let tempArr = JSON.parse(JSON.stringify(prev.name))
+                tempArr.splice(nameIndex, 1)
+                return ({ ...prev, name: tempArr })
             }
         })
-        console.log('看看set后的data---------------->', curDataSelect)
     }, [curDataSelect])
+    
+    const isLastChoice = useCallback((item: any) => {
+        if(dataList.length){
+
+        }
+        return true
+    }, [dataList])
 
     // 人员选择界面确认按钮
     function selectBtnConfirm() {
@@ -277,8 +341,10 @@ export function ArrangeScreen({ route }: ASRouteParams) {
                                 curDataSelect.isMultiple,
                                 curDataSelect.imgIndex,
                                 curDataSelect.name,
-                                selectedStartDate!,
-                                selectedEndDate!
+                                curDataSelect.startDate,
+                                curDataSelect.endDate
+                                // selectedStartDate!,
+                                // selectedEndDate!
                             ));
                             realm.create(ArrangeList, ArrangeList.generate(
                                 curDataSelect.positionId,
@@ -288,8 +354,10 @@ export function ArrangeScreen({ route }: ASRouteParams) {
                                 curDataSelect.isMultiple,
                                 curDataSelect.imgIndex,
                                 curDataSelect.name,
-                                selectedStartDate!,
-                                selectedEndDate!
+                                curDataSelect.startDate,
+                                curDataSelect.endDate
+                                // selectedStartDate!,
+                                // selectedEndDate!
                             ))
                         } else {
                             console.log('看看都在写啥=======>', ArrangeList.generate(
@@ -300,8 +368,10 @@ export function ArrangeScreen({ route }: ASRouteParams) {
                                 item.isMultiple,
                                 item.imgIndex,
                                 [],
-                                selectedStartDate!,
-                                selectedEndDate!
+                                curDataSelect.startDate,
+                                curDataSelect.endDate
+                                // selectedStartDate!,
+                                // selectedEndDate!
                             ));
                             realm.create(ArrangeList, ArrangeList.generate(
                                 item._id,
@@ -311,8 +381,10 @@ export function ArrangeScreen({ route }: ASRouteParams) {
                                 item.isMultiple,
                                 item.imgIndex,
                                 [],
-                                selectedStartDate!,
-                                selectedEndDate!
+                                curDataSelect.startDate,
+                                curDataSelect.endDate
+                                // selectedStartDate!,
+                                // selectedEndDate!
                             ))
                         }
                     })
@@ -338,42 +410,21 @@ export function ArrangeScreen({ route }: ASRouteParams) {
         setMultipleModalVisible(false)
     }, [])
 
-    // 日期modal确认按钮
+    // 点击时已经setCurSelected了，确定逻辑是往curSelectedData里塞从而渲染文本，同时存一下缓存以便取消用
     function dateBtnConfirm() {
-        // -二期TODO查询对应时间列表数据，没选那就默认初始化逻辑setPeriodDateList
-        
-        // if(dataList.length){
-        //     startDate = new Date()
-        //     console.log('先查最近开始日期，看看查询条件=============>', route.params.arrangeType, startDate)
-        //     // tempDataList = dataList.filtered('positionType == $0 AND startDate < $1', route.params.arrangeType, startDate).sorted('startDate', true)
-        //     tempDataList = dataList.filter(data => data.positionType == route.params.arrangeType && compareDesc(new Date(data.startDate), startDate!) > 0).sort((a, b) => compareDesc(new Date(a.startDate), new Date(b.startDate)))
-        //     console.log('看看查询结果=============>', tempDataList)
-        //     const lastDate = tempDataList[0]
-        //     startDate = lastDate!['startDate'] as Date
-        //     endDate = lastDate!['endDate'] as Date
-        //     // tempDataList = dataList.filtered('positionType == $0 AND startDate == $1', route.params.arrangeType, startDate).sorted('positionIndex')
-        //     tempDataList = dataList.filter(data => data.positionType == route.params.arrangeType && compareDesc(new Date(data.startDate), startDate!) === 0).sort((a, b) => a.positionIndex - b.positionIndex)
-        //     // tempDataList = Array.from(tempDataList)
-        // } else {
-        //     console.log('看看试试==============>', Array.from(positionList))
-        //     // setCurArrangeDataList(Array.from(positionList))
-        //     tempDataList = Array.from(positionList)
-        // }
-        // 
-        if(selectedStartDate){
-            // const tempData = dataList.find(data => compareDesc(new Date(data.startDate), selectedStartDate) === 0)
-            // 有日期情况下有数据的话筛数据，没数据就不操作
-        } else {
-            // 没选的情况下弹提示，先设定日期捏，不然不给选捏
-        }
         console.log('康康要设定的{ curStartDate, curEndDate }===================>', { selectedStartDate, selectedEndDate })
+        setSelectedDateMemo(prev => ({...prev, memoStart: selectedStartDate, memoEnd: selectedEndDate}))
+        setCurDataSelect(prev => ({ ...prev, startDate: selectedStartDate, endDate: selectedEndDate }))
         setDateModalVisible(false)
     }
     
-    // 日期modal取消按钮
+    // 日期modal取消按钮 取消当前的selected至null，文本因为没过确定不变，再打开时还按curSelectedData中取start和end来渲染
     const dateBtnCancel = useCallback(() => {
-        setSelectedCurStartDate(defaultStartDate)
-        setSelectedCurEndDate(defaultEndDate)
+        // setSelectedCurStartDate(defaultStartDate)
+        // setSelectedCurEndDate(defaultEndDate)
+        setSelectedCurEndDate(null)
+        setSelectedCurStartDate(null)
+        // setCurDataSelect(prev => ({ ...prev, startDate: defaultStartDate, endDate: defaultEndDate }))
         setDateModalVisible(false)
     }, [defaultStartDate, defaultEndDate])
 
@@ -401,7 +452,15 @@ export function ArrangeScreen({ route }: ASRouteParams) {
                             {
                                 peopleList.map((item: any, index: number) => (
                                     <Pressable
-                                        style={ ({ pressed }) => [modalStyles.selectItem, styles.samItemEdit, pressed && styles.samItemActive, getPeopleDisabled(item) ? { backgroundColor: 'rgb(136, 136, 136)' } : {}]}
+                                        style={
+                                            ({ pressed }) => [
+                                                modalStyles.selectItem, 
+                                                styles.samItemEdit, 
+                                                pressed && styles.samItemActive, 
+                                                getPeopleDisabled(item) ? { backgroundColor: 'rgb(136, 136, 136)' } : {},
+                                                isLastChoice(item) ? { borderColor: 'rgba(250, 240, 216, 1)' } : {}
+                                            ]
+                                        }
                                         key={ index }
                                         onPress={ _ => peopleSelect(item) }
                                         disabled={ getPeopleDisabled(item) }
@@ -446,9 +505,16 @@ export function ArrangeScreen({ route }: ASRouteParams) {
                         <View style={ modalStyles.selectView }>
                             {
                                 peopleList.map((item: any, index: number) => (
-                                    // -TODO 已选的置灰且不可选
                                     <Pressable
-                                        style={ ({ pressed }) => [modalStyles.selectItem, styles.samItemEdit, pressed && styles.samItemActive, getMultiDisable(item) ? { backgroundColor: 'rgb(136, 136, 136)' } : {}] }
+                                        style={
+                                            ({ pressed }) => [
+                                                modalStyles.selectItem, 
+                                                styles.samItemEdit, 
+                                                pressed && styles.samItemActive, 
+                                                getMultiDisable(item) ? { backgroundColor: 'rgb(136, 136, 136)' } : {},
+                                                isLastChoice(item) ? { borderColor: 'rgba(250, 240, 216, 1)' } : {}
+                                            ] 
+                                        }
                                         key={ index }
                                         onPress={ _ => multiPeopleSelect(item) }
                                         // disabled={ getMultiDisable(item) }
@@ -489,8 +555,11 @@ export function ArrangeScreen({ route }: ASRouteParams) {
                 <ScrollView 
                     contentContainerStyle={styles.scrollContainer}
                     showsVerticalScrollIndicator={true} // 隐藏滚动条（可选）
+                        // 所需逻辑：
+                        // 一开始进来默认设置最近的数据，编辑时日期表上五颜六色的历史记录，点击已存的记录直接默认是查询并关闭弹窗关闭编辑模式展示该记录的数据，(并且设置该记录为对比记录?)\
+                        // 点击未存 在日期点击方法中判断当前点击是否在历史peroid之内，如果在，不追加peroid样式，按查询处理，如果不在且start当前为Null，设置，如果不在且start有值且end为null，已经过了是否在peroid逻辑，只需要判断start是否小于最小，当前点击是否大于最大，是报错清除selected，否则走新建
+                        // 日期modal确认按钮 如果开始日期结束日期之间有数据，那么不行，如果开始日期和结束
                 >
-                    {/* <View style={ modalStyles.modalView }></View> */}
                     <View style={ modalStyles.dateModalView }>
                         <View style={ modalStyles.dateSelectView }>
                             <Calendar
@@ -528,7 +597,7 @@ export function ArrangeScreen({ route }: ASRouteParams) {
                             onPress={openDateSelect}
                             disabled={ !isEdit }
                         >
-                            <Text style={ styles.dateText }>{ selectedStartDate && selectedStartDate.toLocaleDateString().split('/').join('.') }-{ selectedEndDate && selectedEndDate.toLocaleDateString().split('/').join('.') }</Text>
+                            <Text style={ styles.dateText }>{ curDataSelect.startDate && curDataSelect.startDate.toLocaleDateString().split('/').join('.') }-{ curDataSelect.endDate && curDataSelect.endDate.toLocaleDateString().split('/').join('.') }</Text>
                         </Pressable>
                     
                 </View>
@@ -651,7 +720,7 @@ const styles = StyleSheet.create({
         
     },
     samItemText: {
-        flex: 1,
+        flex: 7,
         paddingRight: 50,
         textAlignVertical: 'center',
         height: 80,
