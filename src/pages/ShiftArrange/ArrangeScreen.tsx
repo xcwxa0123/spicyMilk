@@ -10,7 +10,7 @@ import { useState } from 'react';
 import { useRealm } from '@realm/react';
 import { ArrangeList } from '@tools/zeroExport'
 import { Calendar, LocaleConfig } from 'react-native-calendars';
-import { eachDayOfInterval, format, compareDesc } from "date-fns";
+import { eachDayOfInterval, format, compareDesc, compareAsc } from "date-fns";
 
 
 // -TODO cn对象整合到工具里，方便整体修改
@@ -67,14 +67,14 @@ export function ArrangeScreen({ route }: ASRouteParams) {
     // 查全数据做缓存，并设置监听器，查全数据意味着数据发生变更，因此也需要重新设置一下日期集
     useEffect(() => {
         // 初始查询
-        let result = realm.objects('ArrangeList').filtered('positionType == $0', route.params.arrangeType)
+        let result = realm.objects('ArrangeList').filtered('positionType == $0', route.params.arrangeType).sorted('startDate', true)
         // 添加监听器
         const updateData = () => {
             setDataList(Array.from(result))
             // 根据startDate去重，并获取所有对应的endDate
             const resMap = new Map()
-            const sortedData = result.sorted('startDate', true)
-            for (const item of sortedData) {
+            // const sortedData = result.sorted('startDate', true)
+            for (const item of result) {
                 const dateKey = (item['startDate'] as Date).toISOString()
                 if(!resMap.has(dateKey)){
                     resMap.set(dateKey, { startDate: item['startDate'], endDate: item['endDate'] })
@@ -88,7 +88,6 @@ export function ArrangeScreen({ route }: ASRouteParams) {
             result.removeListener(updateData);
         };
     }, [realm, route.params.arrangeType]);
-    console.log('看看刷新后的periodDateList---------------->', periodDateList)
     // 导航栏加编辑图标
     useLayoutEffect(() => {
         navigation.setOptions({
@@ -110,75 +109,133 @@ export function ArrangeScreen({ route }: ASRouteParams) {
     }, [navigation, isEdit]);
     
     // 给页面显示的datalist和开始结束日期做缓存
-    const { curArrangeDataList, defaultStartDate, defaultEndDate } = useMemo(() => {
+    const { curArrangeDataList } = useMemo(() => {
         let tempDataList;
-        let startDate: Date | null = null;
-        let endDate: Date | null = null;
+        let startDate: Date | null = selectedStartDate;
+        let endDate: Date | null = selectedEndDate;
         console.log('进来前先看dataList=====================>', dataList)
-        if(dataList.length){
-            startDate = new Date()
-            console.log('先查最近开始日期，看看查询条件=============>', route.params.arrangeType, startDate)
+        if(dataList.length) {
+            // console.log('先查最近开始日期，看看查询条件=============>', route.params.arrangeType, startDate)
             // tempDataList = dataList.filtered('positionType == $0 AND startDate < $1', route.params.arrangeType, startDate).sorted('startDate', true)
-            tempDataList = dataList.filter(data => data.positionType == route.params.arrangeType && compareDesc(new Date(data.startDate), startDate!) > 0).sort((a, b) => compareDesc(new Date(a.startDate), new Date(b.startDate)))
-            console.log('看看查询结果=============>', tempDataList)
-            if(!tempDataList.length){
-                tempDataList = dataList.filter(data => data.positionType == route.params.arrangeType && compareDesc(new Date(data.startDate), startDate!) < 0).sort((a, b) => compareDesc(new Date(a.startDate), new Date(b.startDate)))
-            }
-            const lastDate = tempDataList[0]
+            // tempDataList = dataList.filter(data => data.positionType == route.params.arrangeType && compareDesc(new Date(data.startDate), startDate!) > 0).sort((a, b) => compareDesc(new Date(a.startDate), new Date(b.startDate)))
+            // console.log('看看查询结果=============>', tempDataList)
+            // if(!tempDataList.length){
+            //     tempDataList = dataList.filter(data => data.positionType == route.params.arrangeType && compareDesc(new Date(data.startDate), startDate!) < 0).sort((a, b) => compareDesc(new Date(a.startDate), new Date(b.startDate)))
+            // }
+            // 已经按日期排序过，直接取最大的开始日期的那条数据，获得默认展示数据的开始结束日期
+            const lastDate = dataList[0]
             startDate = lastDate!['startDate'] as Date
             endDate = lastDate!['endDate'] as Date
             // tempDataList = dataList.filtered('positionType == $0 AND startDate == $1', route.params.arrangeType, startDate).sorted('positionIndex')
-            tempDataList = dataList.filter(data => data.positionType == route.params.arrangeType && compareDesc(new Date(data.startDate), startDate!) === 0).sort((a, b) => a.positionIndex - b.positionIndex)
-            // tempDataList = Array.from(tempDataList)
+            // tempDataList = dataList.filter(data => data.positionType == route.params.arrangeType && compareDesc(new Date(data.startDate), startDate!) === 0).sort((a, b) => a.positionIndex - b.positionIndex)
+            // 根据默认展示数据的开始结束日期查询对应的数据，并按照职位排序以便于渲染
+            tempDataList = dataList.filter(data => compareDesc(new Date(data.startDate), startDate!) === 0).sort((a, b) => a.positionIndex - b.positionIndex)
         } else {
             console.log('看看试试==============>', Array.from(positionList))
             // setCurArrangeDataList(Array.from(positionList))
             tempDataList = Array.from(positionList)
         }
         // 逻辑修改，渲染历史数据的日历全走getDataListPeroid，这里只渲染文本，同时setCurSelectedData
-        // setSelectedCurStartDate(startDate)
-        // setSelectedCurEndDate(endDate)
         setCurDataSelect(prev => ({ ...prev, startDate, endDate }))
         console.log('看看最后赋值给curAD的tempDataList===================>', tempDataList)
-        return { curArrangeDataList: tempDataList, defaultStartDate: startDate, defaultEndDate: endDate }
+        return { curArrangeDataList: tempDataList }
     }, [dataList, positionList, route.params.arrangeType])
 
+    enum ClickState {
+        QueryData, // 情况1，查询数据
+        CreateStart, // 情况2， 新建开始日期
+        CreateEnd, // 情况3， 新建结束日期
+        CancelSelect // 情况4， 取消选择
+    }
 
-
-    // 日期onpress
-    // 点击未存 在日期点击方法中判断当前点击是否在历史peroid之内，如果在，不追加peroid样式，
-    // 按查询处理，如果不在且start当前为Null，设置，如果不在且start有值且end为null，已经过了是否在peroid逻辑，只需要判断start是否小于最小，当前点击是否大于最大，是报错清除selected，否则走新建
-    // 日期modal确认按钮 如果开始日期结束日期之间有数据，那么不行，如果开始日期和结束
-    const daySelect = useCallback((date: any) => {
-        console.log('看看选择的日期=============>', date)
-        // 日期选中效果，只有第二次选中日期在第一次之后才给设置，否则全重新设置开始
-        // 已经选中开始日期的时候再点日期则取消选中
-        if(selectedStartDate && !selectedEndDate && compareDesc(selectedStartDate, new Date(date.dateString)) > 0){
-            setSelectedCurEndDate(new Date(date.dateString))
-        } else if(selectedStartDate && compareDesc(selectedStartDate, new Date(date.dateString)) === 0){
-            setSelectedCurStartDate(null)
-            setSelectedCurEndDate(null)
-        } else {
-            setSelectedCurStartDate(new Date(date.dateString))
-            setSelectedCurEndDate(null)
+    // 分装点击情况
+    const getClickState = useCallback((clickedDate: Date, periodDateList: Array<{ [key: string]: Date }> | null, paramSelectedStartDate: Date | null, paramSelectedEndDate: Date | null) => {
+        // 情况1：点击的是已有period中的某天，是为了查询
+            // 对periodDateList进行遍历，如果在某一段之间，即clickedDate大于遍历中当前item的开始日期且小于当前item的结束日期，则认为是情况1
+        if(periodDateList && periodDateList.length){
+            let checkFlag = periodDateList.some(item => compareAsc(item.startDate, clickedDate) <= 0 && compareAsc(item.endDate, clickedDate) >= 0)
+            if(checkFlag){
+                return ClickState.QueryData
+            }
         }
-        // getPeroidDate()
-    }, [selectedStartDate, selectedEndDate]) 
 
+        // 情况2：为了新建开始，点击的只能是非周期内
+            // 如果不是情况1，那就说明点在了非周期内，那就确认是否存在selectedStartDate，如果没有，或者已经选完开始结束（则认为是新一轮的开始），或者有了开始但是当前点的结束是在已经有了的开始之前，则认为是情况2
+        const [
+            isNoStart, // 没有开始
+            isSelectionComplete, // 新一轮的开始
+            isEndBeforeStart // 选在了开始之前
+        ] = [
+            !paramSelectedStartDate, 
+            Boolean(paramSelectedStartDate && paramSelectedEndDate), 
+            Boolean(paramSelectedStartDate && !paramSelectedEndDate && compareAsc(paramSelectedStartDate, clickedDate) > 0)
+        ]
 
-    const reformDateList = useCallback((startDate: Date, endDate: Date) => {
+        if(isNoStart || isSelectionComplete || isEndBeforeStart){
+            return ClickState.CreateStart
+        }
+
+        // 情况3：为了新建结束，点击的只能是非周期内    
+            // 如果不是情况1和2，说明当前点在了非周期内，且存在selectedStartDate，那就判断当前点击的是不是等于selectedStartDate，如果不是，则是情况3
+        if(paramSelectedStartDate && !paramSelectedEndDate && compareAsc(paramSelectedStartDate, clickedDate) != 0){
+            return ClickState.CreateEnd
+        }
+        
+        // 情况4：为了点击自己取消选择
+            // 如果不是情况1、2和3，则说明点在了非周期内且已存在selectedStartDate且当前点击等于selectedStartDate，则只能是情况4
+        return ClickState.CancelSelect
+
+    }, [])
+
+    // 日期被点击时
+    const daySelect = useCallback((date: any) => {
+        const clickedDate = new Date(date.dateString)
+        const state = getClickState(clickedDate, periodDateList, selectedStartDate, selectedEndDate)
+        switch (state) {
+            case ClickState.QueryData:
+                queryDateData(clickedDate)
+                setDateModalVisible(false)
+                break;
+            case ClickState.CreateStart:
+                setSelectedCurStartDate(clickedDate)
+                setSelectedCurEndDate(null)
+                break;
+            case ClickState.CreateEnd:
+                // 创建结束的时候要判断当前开始和结束是否覆盖了已有周期
+                if(periodDateList && periodDateList.length){
+                    // 只要存在当前选择的开始日期在结束日期之前，且点击的日期在结束日期之后，即覆盖了任意一个周期时，都认为有覆盖，抛出
+                    const checkFlag = [...periodDateList].some(item => compareAsc(selectedStartDate!, item.startDate) <= 0 && compareAsc(clickedDate, item.endDate) >= 0)
+                    if(checkFlag){
+                        Alert.alert('不能覆盖其他日期记录捏')
+                        setSelectedCurStartDate(null)
+                        setSelectedCurEndDate(null)
+                        break;
+                    }
+                }
+                setSelectedCurEndDate(clickedDate)
+                break;
+            case ClickState.CancelSelect:
+                setSelectedCurStartDate(null)
+                setSelectedCurEndDate(null)
+                break;
+        }
+
+    }, [selectedStartDate, selectedEndDate, periodDateList])
+
+    // 周期渲染，历史数据type=0颜色为'rgba(148, 136, 109, 1)'，选择数据type=1颜色为'rgba(250, 240, 216, 1)'
+    const reformDateList = useCallback((startDate: Date, endDate: Date, type: number) => {
         let peroidDateObj: { [key: string]: any } = {}
         const dates = eachDayOfInterval({ start: startDate, end: endDate })
         dates.forEach((item, index) => {
             switch (index) {
                 case 0:
-                    peroidDateObj[format(item, 'yyyy-MM-dd')] = { startingDay: true, color: 'rgba(250, 240, 216, 1)' }
+                    peroidDateObj[format(item, 'yyyy-MM-dd')] = { startingDay: true, color: type == 0 ? 'rgba(148, 136, 109, 1)' : 'rgba(250, 240, 216, 1)'}
                     break;
                 case dates.length -1:
-                    peroidDateObj[format(item, 'yyyy-MM-dd')] = { endingDay: true, color: 'rgba(250, 240, 216, 1)' }
+                    peroidDateObj[format(item, 'yyyy-MM-dd')] = { endingDay: true, color: type == 0 ? 'rgba(148, 136, 109, 1)' : 'rgba(250, 240, 216, 1)' }
                     break;
                 default:
-                    peroidDateObj[format(item, 'yyyy-MM-dd')] = { color: 'rgba(250, 240, 216, 1)' }
+                    peroidDateObj[format(item, 'yyyy-MM-dd')] = { color: type == 0 ? 'rgba(148, 136, 109, 1)' : 'rgba(250, 240, 216, 1)' }
                     break;
             }
         })
@@ -186,10 +243,11 @@ export function ArrangeScreen({ route }: ASRouteParams) {
     }, [])
 
     // 拆分逻辑，selected日期只负责日历渲染，不负责日期文本渲染和selectedData填充
+    // 点击时触发的渲染
     const getSelectedPeroidDate = useCallback(() => {
         let peroidDateObj: { [key: string]: any } = {}
         if(selectedStartDate && selectedEndDate){
-            peroidDateObj = reformDateList(selectedStartDate, selectedEndDate)
+            peroidDateObj = reformDateList(selectedStartDate, selectedEndDate, 1)
         } else if (!selectedStartDate && selectedEndDate){
             peroidDateObj[format(selectedEndDate, 'yyyy-MM-dd')] = { color: 'rgba(250, 240, 216, 1)' }
         } else if (selectedStartDate && !selectedEndDate){
@@ -199,12 +257,13 @@ export function ArrangeScreen({ route }: ASRouteParams) {
         return peroidDateObj
     }, [selectedStartDate, selectedEndDate])
     
+    // 历史数据渲染
     const getDataListPeroidDate = useCallback(() => {
         let peroidDateObj: { [key: string]: any } = {}
         periodDateList?.forEach(item => {
-            peroidDateObj = { ...peroidDateObj, ...reformDateList(item.startDate, item.endDate)}
+            peroidDateObj = { ...peroidDateObj, ...reformDateList(item.startDate, item.endDate, 0)}
         })
-        console.log('看看涂上颜色的是哪些日期--------->', peroidDateObj)
+        console.log('初始化渲染，看看涂上颜色的是哪些日期--------->', peroidDateObj)
         return peroidDateObj
     }, [dataList])
 
@@ -220,7 +279,6 @@ export function ArrangeScreen({ route }: ASRouteParams) {
     }, [getSelectedPeroidDate, getDataListPeroidDate])
 
 
-    // let [curStartDate, curEndDate] = selectedStartDate ? [selectedStartDate, selectedEndDate] : [defaultStartDate, defaultEndDate]
 
     console.log('康康人员列表捏===========>peopleList', peopleList)
     console.log('康康职位列表捏===========>positionList', positionList)
@@ -317,8 +375,12 @@ export function ArrangeScreen({ route }: ASRouteParams) {
     function selectBtnConfirm() {
         console.log('康康要写入的curData===============>', { ...curDataSelect, startDate: selectedStartDate, endDate: selectedEndDate  })
         // 如果没有，等于是除了这条以外给这个日期下的所有职位创建一个空数据，点击剩余的时候走的就不是创建而是修改
-        if(!selectedStartDate || !selectedEndDate){
+        // 如果当前没有选择，且空包（非空包意味着修改），则报错
+
+        const [isSelected, isNullData] = [Boolean(!selectedStartDate || !selectedEndDate), Boolean(!curDataSelect.startDate || !curDataSelect.endDate)]
+        if(isSelected && isNullData){
             Alert.alert('先选日期捏')
+            console.log('看看当前curData==================>', curDataSelect);
             return
         }
         try {
@@ -336,8 +398,6 @@ export function ArrangeScreen({ route }: ASRouteParams) {
                                 curDataSelect.name,
                                 curDataSelect.startDate,
                                 curDataSelect.endDate
-                                // selectedStartDate!,
-                                // selectedEndDate!
                             ));
                             realm.create(ArrangeList, ArrangeList.generate(
                                 curDataSelect.positionId,
@@ -349,8 +409,6 @@ export function ArrangeScreen({ route }: ASRouteParams) {
                                 curDataSelect.name,
                                 curDataSelect.startDate,
                                 curDataSelect.endDate
-                                // selectedStartDate!,
-                                // selectedEndDate!
                             ))
                         } else {
                             console.log('看看都在写啥=======>', ArrangeList.generate(
@@ -363,8 +421,6 @@ export function ArrangeScreen({ route }: ASRouteParams) {
                                 [],
                                 curDataSelect.startDate,
                                 curDataSelect.endDate
-                                // selectedStartDate!,
-                                // selectedEndDate!
                             ));
                             realm.create(ArrangeList, ArrangeList.generate(
                                 item._id,
@@ -376,8 +432,6 @@ export function ArrangeScreen({ route }: ASRouteParams) {
                                 [],
                                 curDataSelect.startDate,
                                 curDataSelect.endDate
-                                // selectedStartDate!,
-                                // selectedEndDate!
                             ))
                         }
                     })
@@ -394,7 +448,14 @@ export function ArrangeScreen({ route }: ASRouteParams) {
         setModalVisible(false)
         setMultipleModalVisible(false)
     }
-    
+    function queryDateData(date: Date) {
+        // 直接realm中查start小于等于传进来的日期，end大于等于传进来日期的数据
+        // .filtered('positionType == $0 AND startDate == $1', route.params.arrangeType, startDate).sorted('positionIndex')
+        let result = realm.objects('ArrangeList').filtered('positionType == $0 AND startDate <= $1 AND endDate >= $2', route.params.arrangeType, date, date).sorted('startDate', true)
+        console.log('康康查询的result============>', [...result])
+        setDataList(Array.from(result))
+    }
+
     // 人员选择modal取消按钮
     const selectBtnCancel = useCallback(() => {
         // curdataselect不控制显示，只是预存当前数据，所以无论是否进来时有数据都统一清空名字，只有确定时才写入
@@ -404,27 +465,44 @@ export function ArrangeScreen({ route }: ASRouteParams) {
     }, [])
 
     // 点击时已经setCurSelected了，确定逻辑是往curSelectedData里塞从而渲染文本，同时存一下缓存以便取消用
+    // 如果是查询，则不会走到确定，点击查询的一瞬间就关闭了，点击确定只能是新建，所以要走查询逻辑，查询查不到自动清空
     function dateBtnConfirm() {
         console.log('康康要设定的{ curStartDate, curEndDate }===================>', { selectedStartDate, selectedEndDate })
-        setSelectedDateMemo(prev => ({...prev, memoStart: selectedStartDate, memoEnd: selectedEndDate}))
-        setCurDataSelect(prev => ({ ...prev, startDate: selectedStartDate, endDate: selectedEndDate }))
-        setDateModalVisible(false)
+        const [
+            isCreate,
+            isClose,
+            isError
+        ] = [
+           Boolean(selectedStartDate && selectedEndDate),
+           Boolean(!selectedStartDate && !selectedEndDate),
+           Boolean(selectedStartDate && !selectedEndDate)
+        ]
+        if(isCreate){
+            setSelectedDateMemo({memoStart: selectedStartDate, memoEnd: selectedEndDate})
+            // setCurDataSelect(prev => ({ ...prev, startDate: selectedStartDate, endDate: selectedEndDate }))
+            
+            // console.log('康康要写入的curData===============>', { ...curDataSelect, startDate: selectedStartDate, endDate: selectedEndDate  })
+            queryDateData(selectedStartDate!)
+            setDateModalVisible(false)
+            return
+        }
+
+        if(isClose){
+            dateBtnCancel()
+            return
+        }
+
+        if(isError){
+            Alert.alert('要选结束日期再确定捏')
+            return
+        }
     }
     
     // 日期modal取消按钮 取消当前的selected至null，文本因为没过确定不变，再打开时还按curSelectedData中取start和end来渲染
     const dateBtnCancel = useCallback(() => {
-        // setSelectedCurStartDate(defaultStartDate)
-        // setSelectedCurEndDate(defaultEndDate)
         setSelectedCurEndDate(null)
         setSelectedCurStartDate(null)
-        // setCurDataSelect(prev => ({ ...prev, startDate: defaultStartDate, endDate: defaultEndDate }))
         setDateModalVisible(false)
-    }, [defaultStartDate, defaultEndDate])
-
-    const isSubArr = useCallback((arrA: Array<number | string>, arrB: Array<number | string>) => {
-        let setB = new Set(arrB)
-        arrA.every(item => setB.has(item))
-        
     }, [])
 
     return (
@@ -566,7 +644,7 @@ export function ArrangeScreen({ route }: ASRouteParams) {
                                 style={ ({ pressed }) => [modalStyles.bottomBtn, styles.samItemEdit, styles.bgYellow, pressed && styles.samItemActive] }
                                 onPress={ dateBtnConfirm }
                             >
-                                {/* -二期TODO 开始日期在peroid内的不许set日期，包含peroid的不许set日期（弹提示报错），点了peroid内之后弹提示已经设置查询日期，点击查询捏，点在peroid以外的改为写入 */}
+                                {/* 开始日期在peroid内的不许set日期，包含peroid的不许set日期（弹提示报错），点了peroid内之后弹提示已经设置查询日期，点击查询捏，点在peroid以外的改为写入 */}
                                 <Text style={ modalStyles.btnText }>确定</Text>
                             </Pressable>
                             <Pressable 
