@@ -98,5 +98,137 @@ To learn more about React Native, take a look at the following resources:
 
 
 
+<!-- 修改数据库后用于清空缓存？这样不会闪退 -->
+npx react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res
 
-<!-- npx react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res -->
+
+
+在 Windows 环境下打包 React Native 应用（不使用 Expo）为 Android APK 的详细流程如下（React Native CLI 方式）：
+
+✅ 准备工作
+1. 安装所需工具
+确保以下工具都已经安装：
+
+Node.js（建议使用稳定版本）
+
+Yarn 或 npm
+
+Java JDK 11 或 17
+
+建议使用 OpenJDK 11
+
+Android Studio
+
+并配置好 SDK、平台工具和 Android NDK（可选）
+
+Android Studio 安装时务必勾选 Android SDK、Android SDK Platform, Android SDK Tools, Android Emulator 等。
+
+✅ 项目配置步骤
+2. 配置 Android 环境变量（Windows）
+在 环境变量 中添加以下变量：
+
+plaintext
+复制
+编辑
+JAVA_HOME = C:\Program Files\Java\jdk-11.x.x
+ANDROID_HOME = C:\Users\<你的用户名>\AppData\Local\Android\Sdk
+并将以下路径加入系统的 Path：
+
+plaintext
+复制
+编辑
+%ANDROID_HOME%\platform-tools
+%ANDROID_HOME%\emulator
+%ANDROID_HOME%\tools
+%ANDROID_HOME%\tools\bin
+✅ 开始打包 APK
+3. 生成签名密钥（仅正式发布用）
+bash
+复制
+编辑
+keytool -genkey -v -keystore my-release-key.keystore -alias my-key-alias -keyalg RSA -keysize 2048 -validity 10000
+这个命令会生成一个 my-release-key.keystore 文件，把它放在项目根目录的 /android/app/ 中。
+
+4. 配置密钥信息
+编辑文件：
+
+bash
+复制
+编辑
+android/gradle.properties
+添加以下内容：
+
+properties
+复制
+编辑
+MYAPP_UPLOAD_STORE_FILE=my-release-key.keystore
+MYAPP_UPLOAD_KEY_ALIAS=my-key-alias
+MYAPP_UPLOAD_STORE_PASSWORD=你的store密码
+MYAPP_UPLOAD_KEY_PASSWORD=你的key密码
+然后在 android/app/build.gradle 中找到 android { ... }，在 signingConfigs 中添加：
+
+groovy
+复制
+编辑
+signingConfigs {
+    release {
+        storeFile file(MYAPP_UPLOAD_STORE_FILE)
+        storePassword MYAPP_UPLOAD_STORE_PASSWORD
+        keyAlias MYAPP_UPLOAD_KEY_ALIAS
+        keyPassword MYAPP_UPLOAD_KEY_PASSWORD
+    }
+}
+
+buildTypes {
+    release {
+        signingConfig signingConfigs.release
+        shrinkResources false
+        minifyEnabled false
+        proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
+    }
+}
+✅ 构建 APK
+在项目根目录执行：
+
+bash
+复制
+编辑
+cd android
+./gradlew assembleRelease
+等待构建完成后，APK 会出现在：
+
+plaintext
+复制
+编辑
+android/app/build/outputs/apk/release/app-release.apk
+你可以直接安装这个 APK 到手机或上传到测试平台。
+
+✅ 如果你只想调试版本（不签名）
+bash
+复制
+编辑
+cd android
+./gradlew assembleDebug
+APK 会生成在：
+
+plaintext
+复制
+编辑
+android/app/build/outputs/apk/debug/app-debug.apk
+🛠️ 常见问题
+keystore was tampered with：密码填错了，检查 gradle.properties
+
+SDK location not found：没配置好 ANDROID_HOME 环境变量
+
+构建时间长：第一次构建会拉取 Gradle 依赖，可以修改 android/gradle/wrapper/gradle-wrapper.properties 指定国内源加速
+
+中文路径/空格路径问题：确保项目路径没有中文和空格
+
+如需打包 .aab 用于上传到 Google Play，可执行：
+
+bash
+复制
+编辑
+android目录下
+./gradlew bundleRelease
+如你需要我直接帮你核对打包配置文件、签名部分或遇到具体错误，可贴出相关内容继续沟通。

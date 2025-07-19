@@ -3,7 +3,6 @@ import { useEffect, useCallback } from 'react';
 import { getNavigation } from '@tools/naviHook'
 import { Button } from '@react-navigation/elements';
 import { RouteList } from '@tools/route'
-import { initTable } from '@tools/initTable'
 import { useLayoutEffect } from 'react';
 import { RouteProp } from '@react-navigation/native';
 import { useState } from 'react';
@@ -28,9 +27,6 @@ const getIconImage = (index: number | string) => {
 type BackStageScreen = { route: RouteProp<RouteList, 'BackStageScreen'> }
 
 export function BackStageScreen({ route }: BackStageScreen) {
-    // initTable()
-    const [modalVisible, setModalVisible] = useState(false);
-    const [dateModalVisible, setDateModalVisible] = useState(false);
     const navigation = getNavigation();
     useLayoutEffect(() => {
         navigation.setOptions({
@@ -44,9 +40,9 @@ export function BackStageScreen({ route }: BackStageScreen) {
     }, [navigation]);
     
     let arrangeItemList: Array<ArrangePosition> = [
-        ArrangePosition.generate('初始化', 999, 0, 'rgba(248, 245, 236, 1)', 0),
-        ArrangePosition.generate('新增人员', 999, 1, 'rgba(246, 246, 238, 1)', 0),
-        ArrangePosition.generate('新增职位', 999, 2, 'rgba(255, 248, 240, 1)', 0),
+        ArrangePosition.generate('排班数据初始化', 999, 0, 'rgba(248, 245, 236, 1)', 0),
+        ArrangePosition.generate('人员管理', 999, 1, 'rgba(246, 246, 238, 1)', 0),
+        ArrangePosition.generate('职位管理', 999, 2, 'rgba(255, 248, 240, 1)', 0),
         ArrangePosition.generate('清除所有数据', 999, 3, 'rgba(239, 239, 239, 1)', 0)
     ]
 
@@ -64,6 +60,18 @@ export function BackStageScreen({ route }: BackStageScreen) {
                     console.log('清理失败error================>', error)
                 }
                 break;
+            case 1:
+                try {
+                    // realm.write(() => {
+                    //     realm.delete(realm.objects('ArrangeList'))
+                    // })
+                    Alert.alert("成功清除所有ArrangeList数据");
+                } catch (error) {
+                    Alert.alert("失败，查看console");
+                    console.log('清理失败error================>', error)
+                }
+                break;
+        
         
             default:
                 break;
@@ -72,45 +80,6 @@ export function BackStageScreen({ route }: BackStageScreen) {
 
     return (
         <ImageBackground source={ getIconImage('backgroundImage') } resizeMode='cover' style={ styles.ibg }>
-            <Modal
-                animationType="slide"
-                transparent={true}
-                visible={modalVisible}
-                onRequestClose={() => {
-                    Alert.alert("Modal has been closed.");
-                    setModalVisible(!modalVisible);
-                    // setIsEdit(!isEdit);
-                }}
-            >
-                <ScrollView 
-                    contentContainerStyle={styles.scrollContainer}
-                    showsVerticalScrollIndicator={true} // 隐藏滚动条（可选）
-                >
-                    {/* <View style={ modalStyles.modalView }></View> */}
-                    <View style={ modalStyles.modalView }>
-                        <View style={ modalStyles.selectView }></View>
-                    </View>
-                </ScrollView>
-            </Modal>
-            <Modal
-                animationType="slide"
-                transparent={true}
-                visible={dateModalVisible}
-                onRequestClose={() => {
-                    Alert.alert("Modal has been closed.");
-                    setDateModalVisible(!dateModalVisible);
-                }}
-            >
-                <ScrollView 
-                    contentContainerStyle={styles.scrollContainer}
-                    showsVerticalScrollIndicator={true} // 隐藏滚动条（可选）
-                >
-                    {/* <View style={ modalStyles.modalView }></View> */}
-                    <View style={ modalStyles.dateModalView }>
-                        <View style={ modalStyles.dateSelectView }></View>
-                    </View>
-                </ScrollView>
-            </Modal>
             <ScrollView 
                 contentContainerStyle={styles.scrollContainer}
                 showsVerticalScrollIndicator={false} // 隐藏滚动条（可选）
