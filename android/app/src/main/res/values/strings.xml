@@ -1,3 +1,4 @@
 <resources>
-    <string name="app_name">spicyMilk</string>
+    <!-- <string name="app_name">spicyMilk</string> -->
+    <string name="app_name">排班APP</string>
 </resources>

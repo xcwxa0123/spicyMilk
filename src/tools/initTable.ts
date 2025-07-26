@@ -37,13 +37,13 @@ const ArrangePositionContainer = [
 ]
 
 const ArrangePeopleContainer = [
-	ArrangePeople.generate('释照律师父', 0),
-	ArrangePeople.generate('释演慈师父', 1),
-	ArrangePeople.generate('释道入师父', 2),
-	ArrangePeople.generate('释照玉师父', 3),
-	ArrangePeople.generate('释善昭师父', 4),
-	ArrangePeople.generate('释慧净师父', 5),
-	ArrangePeople.generate('释慧觉师父', 6),
+	ArrangePeople.generate('释照律师父', 0, 0),
+	ArrangePeople.generate('释演慈师父', 1, 0),
+	ArrangePeople.generate('释照玉师父', 3, 0),
+	ArrangePeople.generate('释道入师', 2, 0),
+	ArrangePeople.generate('释善昭师', 4, 0),
+	ArrangePeople.generate('释慧净师', 5, 0),
+	// ArrangePeople.generate('释慧觉师父', 6),
 ]
 
 export function initTable() {
@@ -82,4 +82,22 @@ export function initArrangeTable() {
 
 	}
 	// realm.create(DungeonCategory, Main.generate('时间轴', '时间轴排轴工具', 0)); // 出一个对象，循环往里丢，上面那个也记得这样整
+}
+
+
+export const getIconImage = (index: number | string) => {
+    const imgList: Record<number| string, any> = {
+            // 0: require('@assets/m2.png'),
+            // 1: require('@assets/m1.png'),
+            // 2: require('@assets/m6.png'),
+            // 3: require('@assets/m16.png'),
+
+            'backgroundImage': require('@assets/gongfeng-bg.png'),
+            'editImage': require('@assets/edit.png'),
+            'okImage': require('@assets/ok.png'),
+            'shareImg': require('@assets/icon-share.png'),
+            'delete': require('@assets/delete.png'),
+            'add': require('@assets/add.png')
+        }
+    return imgList[index] || require('@assets/m1.png')
 }

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { getDynamicStack } from '@tools/naviHook'
-import { DataBaseMain, MainScreen, TestScreen, DataBaseOp, BossActLine, ActionLine, SAMainScreen, ArrangeScreen, BackStageScreen } from '@tools/route'
+import { DataBaseMain, MainScreen, TestScreen, DataBaseOp, BossActLine, ActionLine, SAMainScreen, ArrangeScreen, BackStageScreen, ManageScreen } from '@tools/route'
 
 const Stack = getDynamicStack()
 
@@ -17,6 +17,7 @@ export function ScreenDB() {
             <Stack.Screen name='SAMainScreen' component={ SAMainScreen }></Stack.Screen>
             <Stack.Screen name='ArrangeScreen' component={ ArrangeScreen }></Stack.Screen>
             <Stack.Screen name='BackStageScreen' component={ BackStageScreen }></Stack.Screen>
+            <Stack.Screen name='ManageScreen' component={ ManageScreen }></Stack.Screen>
         </Stack.Navigator>
         
     )

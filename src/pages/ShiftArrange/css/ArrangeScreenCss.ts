@@ -23,7 +23,7 @@ export const styles = StyleSheet.create({
         paddingBottom: 0,
         fontFamily: 'SourceHanSerifCN-SemiBold-7',
         fontSize: 40,
-        height: 70,
+        minHeight: 90,
         // borderStyle: 'solid',
         // borderWidth: 1,
     },
@@ -62,7 +62,8 @@ export const styles = StyleSheet.create({
         paddingBottom: 0,
         // marginTop: 20,
         fontFamily: 'SourceHanSerifCN-SemiBold-7',
-        fontSize: 20
+        fontSize: 20,
+        minHeight: 60,
     },
     samList: {
         flex: 7,
@@ -97,10 +98,11 @@ export const styles = StyleSheet.create({
         
     },
     samItemText: {
-        flex: 7,
-        paddingRight: 50,
+        // flex: 7,
+        // paddingRight: 50,
         textAlignVertical: 'center',
-        height: 80,
+        // height: 80,
+        minHeight: 80,
         overflow: 'scroll',
         marginHorizontal: 30,
         fontFamily: 'SourceHanSerifCN-SemiBold-7',

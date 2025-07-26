@@ -6,6 +6,7 @@ import { RouteProp } from '@react-navigation/native';
 import { useRealm } from '@realm/react';
 import { ArrangeList } from '@tools/zeroExport'
 import { compareAsc } from "date-fns";
+import { getIconImage } from '@tools/initTable'
 
 import { styles } from './css/ArrangeScreenCss'
 
@@ -27,24 +28,8 @@ const [
     useRef<ShareMsgRef>(null),
 ]
 
-// -TODO 日后整合到工具里，这样一改全改方便
 const realm = useRealm()
 
-// -TODO 日后整合到工具里，省的每个页面都写
-const getIconImage = (index: number | string) => {
-    const imgList: Record<number| string, any> = {
-        0: require('@assets/m2.png'),
-        1: require('@assets/m1.png'),
-        2: require('@assets/m6.png'),
-        3: require('@assets/m16.png'),
-
-        'backgroundImage': require('@assets/gongfeng-bg.png'),
-        'editImage': require('@assets/edit.png'),
-        'okImage': require('@assets/ok.png'),
-        'shareImg': require('@assets/icon-share.png')
-    }
-    return imgList[index] || require('@assets/m1.png')
-}
 // 路由参数type，找RouteList中的ArrangeScreen，把它的参数类型赋给route
 // -TODO日后整合到一起，就放输出路由的那里
 type ASRouteParams = { route: RouteProp<RouteList, 'ArrangeScreen'> }
@@ -60,7 +45,7 @@ export function ArrangeScreen({ route }: ASRouteParams) {
     // 给职位列表和人员列表查询做缓存，避免重复调取资源
     const { peopleList, positionList } = useMemo(() => ({
         positionList : realm.objects('ArrangePosition').filtered('positionType == $0', route.params.arrangeType),
-        peopleList : realm.objects('ArrangePeople')
+        peopleList : realm.objects('ArrangePeople').filtered('isDel == $0', 0)
     }), [realm, route.params.arrangeType])
 
     // 查全数据做缓存，并设置监听器，查全数据意味着数据发生变更，因此也需要重新设置一下日期集
@@ -343,7 +328,7 @@ export function ArrangeScreen({ route }: ASRouteParams) {
                                 disabled={ !isEdit }
                             >
                                 <Text style={ styles.samItemText }>| { index + 1 } { item.positionName }：      { item.name && item.name.join('、') }</Text>
-                                <Image source={getIconImage(item.imgIndex)} resizeMode="contain" style={ styles.samItemIcon }></Image>
+                                {/* <Image source={getIconImage(item.imgIndex)} resizeMode="contain" style={ styles.samItemIcon }></Image> */}
                             </Pressable>)
                         ))
                     }

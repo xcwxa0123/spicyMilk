@@ -231,4 +231,6 @@ bash
 编辑
 android目录下
 ./gradlew bundleRelease
+ ./gradlew clean && ./gradlew assembleRelease
 如你需要我直接帮你核对打包配置文件、签名部分或遇到具体错误，可贴出相关内容继续沟通。
+android/app/build/outputs/apk/debug/app-release.apk
