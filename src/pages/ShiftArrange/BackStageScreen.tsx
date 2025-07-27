@@ -49,6 +49,8 @@ export function BackStageScreen({ route }: BackStageScreen) {
         try {
             realm.write(() => {
                 realm.delete(realm.objects('ArrangeList'))
+                const delRes = realm.objects('ArrangePeople').filtered('isDel == $0', 1)
+                realm.delete(delRes)
             })
             Alert.alert("成功清除所有历史排班数据");
         } catch (error) {
