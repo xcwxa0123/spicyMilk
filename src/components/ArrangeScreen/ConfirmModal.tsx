@@ -45,7 +45,7 @@ export const ConfirmModal = forwardRef(({ confirmText, data, callBackFunc }: any
             >
                 {/* 人员选择modal */}
                 <View style={ modalStyles.modalView }>
-                    <View style={ [modalStyles.selectView] }>
+                    <View style={ [modalStyles.selectView, { flex: 0 }] }>
                         <Text style={ [styles.topText, {}] }>{ confirmText }</Text>
                         <View style={ modalStyles.bottomView }>
                             <Pressable 

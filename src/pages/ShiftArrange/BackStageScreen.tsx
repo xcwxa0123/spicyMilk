@@ -33,8 +33,8 @@ export function BackStageScreen({ route }: BackStageScreen) {
     }, [navigation]);
     
     let arrangeItemList = [
-        { backgroundColor: 'rgba(248, 245, 236, 1)', positionName: '排班数据初始化', },
-        { backgroundColor: 'rgba(246, 246, 238, 1)', positionName: '人员管理', },
+        { backgroundColor: 'rgba(248, 245, 236, 1)', positionName: '排班数据初始化', positionIndex: 0 },
+        { backgroundColor: 'rgba(246, 246, 238, 1)', positionName: '人员管理', positionIndex: 1 },
         // ArrangePosition.generate('排班数据初始化', 999, 0, 'rgba(248, 245, 236, 1)', 0),
         // ArrangePosition.generate('人员管理', 999, 1, 'rgba(246, 246, 238, 1)', 1),
         // ArrangePosition.generate('职位管理', 999, 2, 'rgba(255, 248, 240, 1)', 2),
