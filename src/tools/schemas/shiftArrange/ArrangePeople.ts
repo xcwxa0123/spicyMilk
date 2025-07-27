@@ -2,22 +2,28 @@
 // 要新增职位
 import { Realm } from '@realm/react'
 export class ArrangePeople extends Realm.Object<ArrangePeople> {
-    name!: string; // 人员姓名 主键
+    _id!: Realm.BSON.ObjectId; // 主键
+    name!: string; // 人员姓名
     nameIndex!: number; // 排序
+    isDel!: 0; // 是否被删除 0-否，1-是
     
-    static generate(name: string, nameIndex: number) {
+    static generate(name: string, nameIndex: number, isDel: number = 0) {
         return {
+            _id: new Realm.BSON.ObjectId(),
             name,
-            nameIndex
+            nameIndex,
+            isDel
         } as ArrangePeople;
     }
 
     static schema: Realm.ObjectSchema = {
         name: 'ArrangePeople',
-        primaryKey: 'name',
+        primaryKey: '_id',
         properties: {
+            _id: 'objectId',
             name: 'string',
-            nameIndex: 'int'
+            nameIndex: 'int',
+            isDel: 'int'
         },
     };
 }

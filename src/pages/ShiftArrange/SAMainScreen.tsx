@@ -1,22 +1,10 @@
-import { ImageBackground, Image, Text, View, StyleSheet, Pressable, ScrollView } from 'react-native';
-import { useEffect } from 'react';
+import { ImageBackground, Text, View, Pressable, ScrollView } from 'react-native';
 import { getNavigation } from '@tools/naviHook'
-import { Button } from '@react-navigation/elements';
 import { ROUTE } from '@tools/route'
 import { initArrangeTable } from '@tools/initTable'
 import { useLayoutEffect } from 'react';
-import { ArrangePosition, ArrangePeople } from '@tools/zeroExport'
-
-const backgroundImage = require('@assets/gongfeng-bg.png');
-const getIconImage = (index: number) => {
-    const imgList: Record<number, any> = {
-        0: require('@assets/m2.png'),
-        1: require('@assets/m1.png'),
-        2: require('@assets/m6.png'),
-        3: require('@assets/m16.png'),
-    }
-    return imgList[index] || require('@assets/m1.png')
-}
+import { styles } from './css/ArrangeScreenCss'
+import { getIconImage } from '@tools/initTable'
 export function SAMainScreen() {
     initArrangeTable()
     const navigation = getNavigation();
@@ -38,12 +26,12 @@ export function SAMainScreen() {
             backgroundColor: 'rgba(248, 245, 236, 1)'
         },
         {
-            itemName: '斋堂排班',
+            itemName: '钟鼓排班',
             positionType: 1,
             backgroundColor: 'rgba(246, 246, 238, 1)'
         },
         {
-            itemName: '钟鼓排班',
+            itemName: '斋堂排班',
             positionType: 2,
             backgroundColor: 'rgba(255, 248, 240, 1)'
         },
@@ -55,7 +43,7 @@ export function SAMainScreen() {
     ]
 
     return (
-        <ImageBackground source={ backgroundImage } resizeMode='cover' style={ styles.ibg }>
+        <ImageBackground source={ getIconImage('backgroundImage') } resizeMode='cover' style={ styles.ibg }>
             <ScrollView 
                 contentContainerStyle={styles.scrollContainer}
                 showsVerticalScrollIndicator={false} // 隐藏滚动条（可选）
@@ -79,7 +67,7 @@ export function SAMainScreen() {
                                 }}
                             >
                                 <Text style={ styles.samItemText }>| { index + 1 } { item.itemName }</Text>
-                                <Image source={getIconImage(index)} resizeMode="contain" style={ styles.samItemIcon }></Image>
+                                {/* <Image source={getIconImage(index)} resizeMode="contain" style={ styles.samItemIcon }></Image> */}
                             </Pressable>
                         ))
                     }
@@ -88,69 +76,3 @@ export function SAMainScreen() {
         </ImageBackground>
     )
 }
-
-// } style="background-image: url('assets/m{{ data.id }}.png'); background-color:{{data.rgba}}"
-const styles = StyleSheet.create({
-    ibg: {
-        overflow: 'scroll',
-        flex: 1,
-        alignItems: 'center', 
-    },
-    scrollContainer: {
-        flexGrow: 1, // 确保内容不足时也能填满空间
-    },
-    topText: {
-        flex: 1,
-        padding: 20,
-        fontFamily: 'SourceHanSerifCN-SemiBold-7',
-        fontSize: 60,
-        height: 130
-    },
-    secondText: {
-        flex: 2,
-        padding: 20,
-        paddingTop: 0,
-        fontFamily: 'SourceHanSerifCN-SemiBold-7',
-        fontSize: 20
-    },
-    samList: {
-        flex: 7,
-    },
-    samItem: {
-        // flex: 3,
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        flexDirection: 'row',
-        margin: 20,
-        borderRadius: 10,
-        borderStyle: 'solid',
-        borderWidth: 1,
-        borderColor: 'rgba(216, 213, 206, 1)',
-        boxShadow: '4px 4px 4px rgba(0, 0, 0, 0.1)'
-    },
-    samItemActive: {
-        boxShadow: 'none',
-        position: 'relative',
-        top: 3,
-        left: 2
-    },
-    samItemIcon: {
-        aspectRatio: 1,
-        width: '20%',
-        marginTop: 15,
-        marginBottom: 15,
-        marginRight: 20
-        
-    },
-    samItemText: {
-        paddingRight: 50,
-        textAlignVertical: 'center',
-        height: 80,
-        marginHorizontal: 30,
-        fontFamily: 'SourceHanSerifCN-SemiBold-7',
-        fontSize: 30,
-        textAlign: 'left'
-    }
-});
-
-// 

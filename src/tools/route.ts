@@ -10,6 +10,7 @@ export type RouteList = {
     SAMainScreen: undefined;
     ArrangeScreen: { arrangeType: number, title: string };
     BackStageScreen: undefined;
+    ManageScreen: { manageType: number, title: string }
 }
 
 export const ROUTE = {
@@ -22,7 +23,8 @@ export const ROUTE = {
     // 从这开始是排班的
     SAMAINSCREEN: 'SAMainScreen',
     ARRANGESCREEN: 'ArrangeScreen',
-    BACKSTAGESCREEN: 'BackStageScreen'
+    BACKSTAGESCREEN: 'BackStageScreen',
+    MANAGESCREEN: 'ManageScreen',
 } as const;
 
 export { MainScreen } from '@pages/MainScreen'
@@ -35,3 +37,4 @@ export { TestScreen } from '@pages/TestScreen'
 export { SAMainScreen } from '@pages/ShiftArrange/SAMainScreen'
 export { ArrangeScreen } from '@pages/ShiftArrange/ArrangeScreen'
 export { BackStageScreen } from '@pages/ShiftArrange/BackStageScreen'
+export { ManageScreen } from '@pages/ShiftArrange/ManageScreen'

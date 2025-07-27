@@ -98,5 +98,76 @@ To learn more about React Native, take a look at the following resources:
 
 
 
+<!-- 修改数据库后用于清空缓存？这样不会闪退 -->
+npx react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res
 
-<!-- npx react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res -->
+
+1. 安装所需工具
+确保以下工具都已经安装：
+
+Node.js（建议使用稳定版本）
+
+Yarn 或 npm
+
+Java JDK 11 或 17
+
+建议使用 OpenJDK 11
+
+Android Studio
+
+并配置好 SDK、平台工具和 Android NDK（可选）
+
+Android Studio 安装时务必勾选 Android SDK、Android SDK Platform, Android SDK Tools, Android Emulator 等。
+
+2. 配置 Android 环境变量（Windows）
+在 环境变量 中添加以下变量：
+
+JAVA_HOME = C:\Program Files\Java\jdk-11.x.x
+ANDROID_HOME = C:\Users\<你的用户名>\AppData\Local\Android\Sdk
+并将以下路径加入系统的 Path：
+
+%ANDROID_HOME%\platform-tools
+%ANDROID_HOME%\emulator
+%ANDROID_HOME%\tools
+%ANDROID_HOME%\tools\bin
+
+3. 生成签名密钥（仅正式发布用）
+
+keytool -genkey -v -keystore my-release-key.keystore -alias my-key-alias -keyalg RSA -keysize 2048 -validity 10000
+这个命令会生成一个 my-release-key.keystore 文件，把它放在项目根目录的 /android/app/ 中。
+
+4. 配置密钥信息
+
+android/gradle.properties
+添加以下内容：
+
+MYAPP_UPLOAD_STORE_FILE=my-release-key.keystore
+MYAPP_UPLOAD_KEY_ALIAS=my-key-alias
+MYAPP_UPLOAD_STORE_PASSWORD=你的store密码
+MYAPP_UPLOAD_KEY_PASSWORD=你的key密码
+然后在 android/app/build.gradle 中找到 android { ... }，在 signingConfigs 中添加：
+
+signingConfigs {
+    release {
+        storeFile file(MYAPP_UPLOAD_STORE_FILE)
+        storePassword MYAPP_UPLOAD_STORE_PASSWORD
+        keyAlias MYAPP_UPLOAD_KEY_ALIAS
+        keyPassword MYAPP_UPLOAD_KEY_PASSWORD
+    }
+}
+
+buildTypes {
+    release {
+        signingConfig signingConfigs.release
+        shrinkResources false
+        minifyEnabled false
+        proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
+    }
+}
+
+android目录下
+./gradlew bundleRelease   aab
+./gradlew assembleDebug
+ ./gradlew clean && ./gradlew assembleRelease    apk
+
+android/app/build/outputs/apk/debug/app-release.apk
