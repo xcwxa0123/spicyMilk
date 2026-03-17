@@ -12,7 +12,7 @@ export function SAMainScreen() {
             navigation.setOptions({
                 title: '',
                 headerStyle: {
-                    backgroundColor: 'rgba(254, 251, 244, 0.3)',
+                    // backgroundColor: 'rgba(254, 251, 244, 0.9)',
                 },
                 headerTintColor: '#fff', // 文字/图标颜色
                 headerShadowVisible: false,

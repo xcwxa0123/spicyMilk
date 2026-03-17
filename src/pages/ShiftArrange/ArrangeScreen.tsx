@@ -116,7 +116,7 @@ export function ArrangeScreen({ route }: ASRouteParams) {
             ),
             title: '',
             headerStyle: {
-                backgroundColor: 'rgba(254, 251, 244, 0.3)',
+                // backgroundColor: 'rgba(254, 251, 244, 0.3)',
             },
             headerTintColor: '#rgba(0, 0, 0, 1)', // 文字/图标颜色
             headerShadowVisible: false,
